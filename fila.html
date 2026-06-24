@@ -1,696 +1,298 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Arkos — Fila de Produção</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #f4f3f0; font-family: system-ui, -apple-system, sans-serif; }
-    input:focus { outline: none; border-color: #c53030 !important; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#f4f3f0;font-family:system-ui,-apple-system,sans-serif;color:#1a1816}
+    .header{background:#fff;border-bottom:1px solid #e0ddd8;padding:14px 20px}
+    .header-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+    .header-title{font-size:15px;font-weight:700}
+    .header-sub{font-size:11px;color:#8a8580;margin-top:2px}
+    .btn-refresh{padding:7px 14px;background:#f4f3f0;border:1px solid #e0ddd8;border-radius:4px;cursor:pointer;font-size:12px;color:#5a5550}
+    .filtros{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+    .btn-filtro{padding:6px 14px;border-radius:20px;cursor:pointer;font-size:12px;font-family:inherit;border:1.5px solid #e0ddd8;background:#f8f7f5;color:#6a6560;display:flex;align-items:center;gap:6px}
+    .btn-filtro .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+    .btn-filtro.ativo-recebido{background:#fffbf0;border-color:#f5dcb0;color:#b06010}
+    .btn-filtro.ativo-producao{background:#eff6ff;border-color:#bfdbfe;color:#1d4ed8}
+    .btn-filtro.ativo-enviado{background:#f0fdf4;border-color:#bbf7d0;color:#15803d}
+    .btn-filtro.ativo-todos{background:#f1f5f9;border-color:#94a3b8;color:#334155}
+    .busca-bar{background:#fff;border-bottom:1px solid #e0ddd8;padding:10px 20px}
+    .busca-bar input{width:100%;max-width:500px;background:#f8f7f5;border:1px solid #e0ddd8;border-radius:4px;padding:8px 12px;font-size:13px;font-family:inherit;outline:none;color:#1a1816}
+    .content{padding:20px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+    .card{background:#fff;border-radius:6px;border:1px solid #e0ddd8;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.05);border-top:3px solid #e0ddd8}
+    .card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+    .tags{display:flex;gap:6px;flex-wrap:wrap}
+    .tag{font-size:10px;font-weight:600;padding:3px 8px;border-radius:10px;letter-spacing:.3px}
+    .tag-recebido{background:#fffbf0;color:#b06010;border:1px solid #f5dcb0}
+    .tag-producao{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+    .tag-enviado{background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0}
+    .tag-tipo{background:#f4f3f0;color:#6a6560;border:1px solid #e0ddd8}
+    .card-data{font-size:11px;color:#8a8580}
+    .card-solicitante{font-size:13px;font-weight:700;color:#c53030;margin-bottom:4px}
+    .card-material{font-size:12px;color:#3a3835;line-height:1.5;white-space:pre-line;margin-bottom:8px}
+    .card-cliente{background:#f8f7f5;border-radius:4px;padding:8px 10px;font-size:11px;display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+    .card-rastreio{margin-top:6px;font-size:11px;color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;padding:5px 10px}
+    .card-actions{display:flex;gap:8px;margin-top:12px}
+    .btn-producao{flex:1;padding:8px 12px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;font-family:inherit}
+    .btn-enviado{flex:1;padding:8px 12px;background:#c53030;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;font-family:inherit}
+    .btn-voltar{padding:8px 12px;background:#f4f3f0;color:#5a5550;border:1px solid #e0ddd8;border-radius:4px;cursor:pointer;font-size:11px;font-family:inherit}
+    .card-enviado-info{margin-top:10px;font-size:11px;color:#15803d}
+    .empty{text-align:center;padding:60px 0;color:#8a8580;font-size:13px}
+    .loading{text-align:center;padding:60px 0;color:#8a8580;font-size:13px}
+    .erro{background:#fff5f5;border:1px solid #fcc;border-radius:4px;padding:10px 14px;font-size:12px;color:#c53030;margin-bottom:16px}
+    /* MODAL */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:100}
+    .modal{background:#fff;border-radius:8px;padding:24px;width:90%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+    .modal h3{font-size:15px;font-weight:700;margin-bottom:4px}
+    .modal-sub{font-size:12px;color:#8a8580;margin-bottom:10px}
+    .modal-material{font-size:12px;color:#5a5550;line-height:1.5;white-space:pre-line;margin-bottom:16px;max-height:80px;overflow-y:auto}
+    .modal label{font-size:11px;font-weight:600;color:#5a5550;display:block;margin-bottom:5px}
+    .modal input{width:100%;background:#f8f7f5;border:1px solid #d8d5d0;border-radius:4px;padding:8px 10px;font-size:13px;font-family:inherit;outline:none;margin-bottom:16px}
+    .modal-actions{display:flex;gap:8px}
   </style>
 </head>
 <body>
-  <div id="root"></div>
-  <script>
-    var useState = React.useState;
-var useEffect = React.useEffect;
-var useCallback = React.useCallback;
-var useRef = React.useRef;
 
-function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
-function ownKeys(e, r) { var t = Object.keys(e); if (Object.getOwnPropertySymbols) { var o = Object.getOwnPropertySymbols(e); r && (o = o.filter(function (r) { return Object.getOwnPropertyDescriptor(e, r).enumerable; })), t.push.apply(t, o); } return t; }
-function _objectSpread(e) { for (var r = 1; r < arguments.length; r++) { var t = null != arguments[r] ? arguments[r] : {}; r % 2 ? ownKeys(Object(t), !0).forEach(function (r) { _defineProperty(e, r, t[r]); }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) { Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r)); }); } return e; }
-function _defineProperty(e, r, t) { return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, { value: t, enumerable: !0, configurable: !0, writable: !0 }) : e[r] = t, e; }
-function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
-function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
-function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */ var e, t, r = "function" == typeof Symbol ? Symbol : {}, n = r.iterator || "@@iterator", o = r.toStringTag || "@@toStringTag"; function i(r, n, o, i) { var c = n && n.prototype instanceof Generator ? n : Generator, u = Object.create(c.prototype); return _regeneratorDefine2(u, "_invoke", function (r, n, o) { var i, c, u, f = 0, p = o || [], y = !1, G = { p: 0, n: 0, v: e, a: d, f: d.bind(e, 4), d: function d(t, r) { return i = t, c = 0, u = e, G.n = r, a; } }; function d(r, n) { for (c = r, u = n, t = 0; !y && f && !o && t < p.length; t++) { var o, i = p[t], d = G.p, l = i[2]; r > 3 ? (o = l === n) && (u = i[(c = i[4]) ? 5 : (c = 3, 3)], i[4] = i[5] = e) : i[0] <= d && ((o = r < 2 && d < i[1]) ? (c = 0, G.v = n, G.n = i[1]) : d < l && (o = r < 3 || i[0] > n || n > l) && (i[4] = r, i[5] = n, G.n = l, c = 0)); } if (o || r > 1) return a; throw y = !0, n; } return function (o, p, l) { if (f > 1) throw TypeError("Generator is already running"); for (y && 1 === p && d(p, l), c = p, u = l; (t = c < 2 ? e : u) || !y;) { i || (c ? c < 3 ? (c > 1 && (G.n = -1), d(c, u)) : G.n = u : G.v = u); try { if (f = 2, i) { if (c || (o = "next"), t = i[o]) { if (!(t = t.call(i, u))) throw TypeError("iterator result is not an object"); if (!t.done) return t; u = t.value, c < 2 && (c = 0); } else 1 === c && (t = i.return) && t.call(i), c < 2 && (u = TypeError("The iterator does not provide a '" + o + "' method"), c = 1); i = e; } else if ((t = (y = G.n < 0) ? u : r.call(n, G)) !== a) break; } catch (t) { i = e, c = 1, u = t; } finally { f = 1; } } return { value: t, done: y }; }; }(r, o, i), !0), u; } var a = {}; function Generator() {} function GeneratorFunction() {} function GeneratorFunctionPrototype() {} t = Object.getPrototypeOf; var c = [][n] ? t(t([][n]())) : (_regeneratorDefine2(t = {}, n, function () { return this; }), t), u = GeneratorFunctionPrototype.prototype = Generator.prototype = Object.create(c); function f(e) { return Object.setPrototypeOf ? Object.setPrototypeOf(e, GeneratorFunctionPrototype) : (e.__proto__ = GeneratorFunctionPrototype, _regeneratorDefine2(e, o, "GeneratorFunction")), e.prototype = Object.create(u), e; } return GeneratorFunction.prototype = GeneratorFunctionPrototype, _regeneratorDefine2(u, "constructor", GeneratorFunctionPrototype), _regeneratorDefine2(GeneratorFunctionPrototype, "constructor", GeneratorFunction), GeneratorFunction.displayName = "GeneratorFunction", _regeneratorDefine2(GeneratorFunctionPrototype, o, "GeneratorFunction"), _regeneratorDefine2(u), _regeneratorDefine2(u, o, "Generator"), _regeneratorDefine2(u, n, function () { return this; }), _regeneratorDefine2(u, "toString", function () { return "[object Generator]"; }), (_regenerator = function _regenerator() { return { w: i, m: f }; })(); }
-function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
-function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
-function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
-function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
-function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
-function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
-function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
-function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
-function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
-function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
-var APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfENYrCbmgdBzI5qgn2sy0llromxbaXd5u14kxT9HkRXtIMqBg7xGqqbbgw9C9uiKC/exec"; // mesma URL do formulário
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title">Fila de Produção — Amostras</div>
+      <div class="header-sub">Arkos Brasil · Time de Amostras</div>
+    </div>
+    <button class="btn-refresh" onclick="carregar()">↻ Atualizar</button>
+  </div>
+  <div class="filtros">
+    <button class="btn-filtro ativo-recebido" id="f-recebido" onclick="setFiltro('recebido')">
+      <span class="dot" style="background:#f59e0b"></span> Recebido <strong id="c-recebido">0</strong>
+    </button>
+    <button class="btn-filtro" id="f-producao" onclick="setFiltro('producao')">
+      <span class="dot" style="background:#3b82f6"></span> Em Produção <strong id="c-producao">0</strong>
+    </button>
+    <button class="btn-filtro" id="f-enviado" onclick="setFiltro('enviado')">
+      <span class="dot" style="background:#22c55e"></span> Enviado <strong id="c-enviado">0</strong>
+    </button>
+    <button class="btn-filtro" id="f-todos" onclick="setFiltro('todos')">
+      Todos <strong id="c-todos">0</strong>
+    </button>
+  </div>
+</div>
 
-// ── Lógica de status ──
-var getStatus = function getStatus(p) {
+<div class="busca-bar">
+  <input type="text" id="busca" placeholder="Buscar por solicitante, cliente, empresa ou material..." oninput="renderCards()"/>
+</div>
+
+<div class="content">
+  <div id="erro-box" class="erro" style="display:none"></div>
+  <div id="loading" class="loading">Carregando pedidos...</div>
+  <div id="grid" class="grid" style="display:none"></div>
+  <div id="empty" class="empty" style="display:none">Nenhum pedido encontrado.</div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="modal" style="display:none" onclick="fecharModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3 id="modal-titulo"></h3>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div class="modal-material" id="modal-material"></div>
+    <div id="modal-rastreio-field" style="display:none">
+      <label id="modal-rastreio-label">Código de rastreio</label>
+      <input type="text" id="modal-rastreio" placeholder="Ex: AB962846400BR"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-enviado" id="modal-confirmar" onclick="confirmarUpdate()" style="flex:1">Confirmar</button>
+      <button class="btn-voltar" onclick="fecharModal()" style="flex:1">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfENYrCbmgdBzI5qgn2sy0llromxbaXd5u14kxT9HkRXtIMqBg7xGqqbbgw9C9uiKC/exec";
+let pedidos = [];
+let filtro = "recebido";
+let modalPedido = null;
+let modalNovoStatus = null;
+
+function getStatus(p) {
   if (p.finalizado) return "enviado";
   if (p.emProducao) return "producao";
   return "recebido";
-};
-var STATUS_CONFIG = {
-  recebido: {
-    label: "Recebido",
-    color: "#b06010",
-    bg: "#fffbf0",
-    border: "#f5dcb0",
-    dot: "#f59e0b"
-  },
-  producao: {
-    label: "Em Produção",
-    color: "#1d4ed8",
-    bg: "#eff6ff",
-    border: "#bfdbfe",
-    dot: "#3b82f6"
-  },
-  enviado: {
-    label: "Enviado",
-    color: "#15803d",
-    bg: "#f0fdf4",
-    border: "#bbf7d0",
-    dot: "#22c55e"
-  }
-};
-var TIPO_ICON = {
-  Motoboy: "🛵",
-  Correios: "📦",
-  Representantes: "🤝"
-};
-function FilaProducao() {
-  var _useState = useState([]),
-    _useState2 = _slicedToArray(_useState, 2),
-    pedidos = _useState2[0],
-    setPedidos = _useState2[1];
-  var _useState3 = useState(true),
-    _useState4 = _slicedToArray(_useState3, 2),
-    loading = _useState4[0],
-    setLoading = _useState4[1];
-  var _useState5 = useState(""),
-    _useState6 = _slicedToArray(_useState5, 2),
-    erro = _useState6[0],
-    setErro = _useState6[1];
-  var _useState7 = useState("recebido"),
-    _useState8 = _slicedToArray(_useState7, 2),
-    filtro = _useState8[0],
-    setFiltro = _useState8[1]; // recebido | producao | enviado | todos
-  var _useState9 = useState(""),
-    _useState0 = _slicedToArray(_useState9, 2),
-    busca = _useState0[0],
-    setBusca = _useState0[1];
-  var _useState1 = useState(null),
-    _useState10 = _slicedToArray(_useState1, 2),
-    modal = _useState10[0],
-    setModal = _useState10[1]; // { pedido, novoStatus }
-  var _useState11 = useState(""),
-    _useState12 = _slicedToArray(_useState11, 2),
-    rastreio = _useState12[0],
-    setRastreio = _useState12[1];
-  var _useState13 = useState(false),
-    _useState14 = _slicedToArray(_useState13, 2),
-    salvando = _useState14[0],
-    setSalvando = _useState14[1];
-  var carregar = useCallback(/*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
-    var res, data, sorted, _t;
-    return _regenerator().w(function (_context) {
-      while (1) switch (_context.p = _context.n) {
-        case 0:
-          setLoading(true);
-          setErro("");
-          _context.p = 1;
-          _context.n = 2;
-          return fetch("".concat(APPS_SCRIPT_URL, "?action=fila"));
-        case 2:
-          res = _context.v;
-          _context.n = 3;
-          return res.json();
-        case 3:
-          data = _context.v;
-          if (data.success) {
-            // Ordena: mais recentes primeiro
-            sorted = _toConsumableArray(data.pedidos).reverse();
-            setPedidos(sorted);
-          } else {
-            setErro("Erro ao carregar pedidos: " + data.error);
-          }
-          _context.n = 5;
-          break;
-        case 4:
-          _context.p = 4;
-          _t = _context.v;
-          setErro("Não foi possível conectar. Verifique a URL do Apps Script.");
-        case 5:
-          setLoading(false);
-        case 6:
-          return _context.a(2);
-      }
-    }, _callee, null, [[1, 4]]);
-  })), []);
-  useEffect(function () {
-    carregar();
-  }, [carregar]);
-  var abrirModal = function abrirModal(pedido, novoStatus) {
-    setRastreio("");
-    setModal({
-      pedido: pedido,
-      novoStatus: novoStatus
-    });
-  };
-  var confirmarUpdate = /*#__PURE__*/function () {
-    var _confirmarUpdate = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee2() {
-      var pedido, novoStatus, payload, _t2;
-      return _regenerator().w(function (_context2) {
-        while (1) switch (_context2.p = _context2.n) {
-          case 0:
-            if (modal) {
-              _context2.n = 1;
-              break;
-            }
-            return _context2.a(2);
-          case 1:
-            setSalvando(true);
-            pedido = modal.pedido, novoStatus = modal.novoStatus;
-            payload = {
-              action: "update_status",
-              id: pedido.id,
-              recebido: true,
-              emProducao: novoStatus === "producao" || novoStatus === "enviado",
-              finalizado: novoStatus === "enviado",
-              rastreio: rastreio || ""
-            };
-            _context2.p = 2;
-            _context2.n = 3;
-            return fetch(APPS_SCRIPT_URL, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify(payload),
-              mode: "no-cors"
-            });
-          case 3:
-            // Atualiza localmente sem recarregar tudo
-            setPedidos(function (prev) {
-              return prev.map(function (p) {
-                return p.id === pedido.id ? _objectSpread(_objectSpread({}, p), {}, {
-                  recebido: true,
-                  emProducao: payload.emProducao,
-                  finalizado: payload.finalizado,
-                  rastreio: rastreio || p.rastreio
-                }) : p;
-              });
-            });
-            setModal(null);
-            _context2.n = 5;
-            break;
-          case 4:
-            _context2.p = 4;
-            _t2 = _context2.v;
-            setErro("Erro ao salvar. Tente novamente.");
-          case 5:
-            setSalvando(false);
-          case 6:
-            return _context2.a(2);
-        }
-      }, _callee2, null, [[2, 4]]);
-    }));
-    function confirmarUpdate() {
-      return _confirmarUpdate.apply(this, arguments);
-    }
-    return confirmarUpdate;
-  }();
-
-  // Filtragem
-  var pedidosFiltrados = pedidos.filter(function (p) {
-    var status = getStatus(p);
-    var matchFiltro = filtro === "todos" || status === filtro;
-    var matchBusca = !busca || [p.comercial, p.cliente, p.empresa, p.material].join(" ").toLowerCase().includes(busca.toLowerCase());
-    return matchFiltro && matchBusca;
-  });
-  var contagem = {
-    recebido: pedidos.filter(function (p) {
-      return getStatus(p) === "recebido";
-    }).length,
-    producao: pedidos.filter(function (p) {
-      return getStatus(p) === "producao";
-    }).length,
-    enviado: pedidos.filter(function (p) {
-      return getStatus(p) === "enviado";
-    }).length
-  };
-  return /*#__PURE__*/React.createElement("div", {
-    style: s.page
-  }, /*#__PURE__*/React.createElement("div", {
-    style: s.header
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      flexWrap: "wrap",
-      gap: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 3,
-      height: 28,
-      background: "#c53030"
-    }
-  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: s.headerTitle
-  }, "Fila de Produ\xE7\xE3o \u2014 Amostras"), /*#__PURE__*/React.createElement("div", {
-    style: s.headerSub
-  }, "Arkos Brasil \xB7 Time de Amostras"))), /*#__PURE__*/React.createElement("button", {
-    onClick: carregar,
-    style: s.btnRefresh,
-    title: "Atualizar"
-  }, "\u21BB Atualizar")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      marginTop: 14,
-      flexWrap: "wrap"
-    }
-  }, Object.entries(contagem).map(function (_ref2) {
-    var _ref3 = _slicedToArray(_ref2, 2),
-      key = _ref3[0],
-      val = _ref3[1];
-    var cfg = STATUS_CONFIG[key];
-    return /*#__PURE__*/React.createElement("button", {
-      key: key,
-      onClick: function onClick() {
-        return setFiltro(key);
-      },
-      style: _objectSpread(_objectSpread({}, s.counterBtn), {}, {
-        background: filtro === key ? cfg.bg : "#f8f7f5",
-        border: "1.5px solid ".concat(filtro === key ? cfg.border : "#e0ddd8"),
-        color: filtro === key ? cfg.color : "#6a6560"
-      })
-    }, /*#__PURE__*/React.createElement("span", {
-      style: {
-        width: 8,
-        height: 8,
-        borderRadius: "50%",
-        background: cfg.dot,
-        display: "inline-block",
-        marginRight: 6
-      }
-    }), cfg.label, " ", /*#__PURE__*/React.createElement("strong", {
-      style: {
-        marginLeft: 4
-      }
-    }, val));
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setFiltro("todos");
-    },
-    style: _objectSpread(_objectSpread({}, s.counterBtn), {}, {
-      background: filtro === "todos" ? "#f1f5f9" : "#f8f7f5",
-      border: "1.5px solid ".concat(filtro === "todos" ? "#94a3b8" : "#e0ddd8"),
-      color: filtro === "todos" ? "#334155" : "#6a6560"
-    })
-  }, "Todos ", /*#__PURE__*/React.createElement("strong", {
-    style: {
-      marginLeft: 4
-    }
-  }, pedidos.length)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "12px 20px",
-      background: "#ffffff",
-      borderBottom: "1px solid #e0ddd8"
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    value: busca,
-    onChange: function onChange(e) {
-      return setBusca(e.target.value);
-    },
-    placeholder: "Buscar por solicitante, cliente, empresa ou material...",
-    style: s.searchInput
-  })), /*#__PURE__*/React.createElement("div", {
-    style: s.content
-  }, erro && /*#__PURE__*/React.createElement("div", {
-    style: s.erroBox
-  }, erro), loading ? /*#__PURE__*/React.createElement("div", {
-    style: s.loading
-  }, "Carregando pedidos...") : pedidosFiltrados.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: s.empty
-  }, busca ? "Nenhum pedido encontrado para essa busca." : "Nenhum pedido neste status.") : /*#__PURE__*/React.createElement("div", {
-    style: s.grid
-  }, pedidosFiltrados.map(function (pedido) {
-    var status = getStatus(pedido);
-    var cfg = STATUS_CONFIG[status];
-    return /*#__PURE__*/React.createElement("div", {
-      key: pedido.id,
-      style: _objectSpread(_objectSpread({}, s.card), {}, {
-        borderTop: "3px solid ".concat(cfg.dot)
-      })
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-        marginBottom: 10
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 6,
-        flexWrap: "wrap"
-      }
-    }, /*#__PURE__*/React.createElement("span", {
-      style: _objectSpread(_objectSpread({}, s.tag), {}, {
-        background: cfg.bg,
-        color: cfg.color,
-        border: "1px solid ".concat(cfg.border)
-      })
-    }, cfg.label), /*#__PURE__*/React.createElement("span", {
-      style: _objectSpread(_objectSpread({}, s.tag), {}, {
-        background: "#f4f3f0",
-        color: "#6a6560"
-      })
-    }, TIPO_ICON[pedido.tipo], " ", pedido.tipo)), /*#__PURE__*/React.createElement("span", {
-      style: s.data
-    }, pedido.data)), /*#__PURE__*/React.createElement("div", {
-      style: s.solicitante
-    }, pedido.comercial), /*#__PURE__*/React.createElement("div", {
-      style: s.material
-    }, pedido.material), (pedido.cliente || pedido.empresa) && /*#__PURE__*/React.createElement("div", {
-      style: s.clienteBox
-    }, pedido.cliente && /*#__PURE__*/React.createElement("div", {
-      style: s.clienteNome
-    }, pedido.cliente), pedido.empresa && /*#__PURE__*/React.createElement("div", {
-      style: s.clienteEmp
-    }, pedido.empresa), pedido.telefone && /*#__PURE__*/React.createElement("div", {
-      style: s.clienteInfo
-    }, "\uD83D\uDCDE ", pedido.telefone), pedido.endereco && /*#__PURE__*/React.createElement("div", {
-      style: s.clienteInfo
-    }, "\uD83D\uDCCD ", pedido.endereco)), pedido.rastreio && /*#__PURE__*/React.createElement("div", {
-      style: s.rastreioBox
-    }, "\uD83D\uDE9A ", pedido.rastreio), status !== "enviado" && /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 8,
-        marginTop: 12
-      }
-    }, status === "recebido" && /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return abrirModal(pedido, "producao");
-      },
-      style: s.btnProducao
-    }, "Iniciar produ\xE7\xE3o \u2192"), status === "producao" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return abrirModal(pedido, "recebido");
-      },
-      style: s.btnVoltar
-    }, "\u2190 Voltar"), /*#__PURE__*/React.createElement("button", {
-      onClick: function onClick() {
-        return abrirModal(pedido, "enviado");
-      },
-      style: s.btnEnviado
-    }, "Marcar como enviado \u2713"))), pedido.dataEnvio && status === "enviado" && /*#__PURE__*/React.createElement("div", {
-      style: {
-        marginTop: 10,
-        fontSize: 11,
-        color: "#15803d"
-      }
-    }, "\u2713 Enviado em ", pedido.dataEnvio));
-  }))), modal && /*#__PURE__*/React.createElement("div", {
-    style: s.overlay,
-    onClick: function onClick() {
-      return setModal(null);
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: s.modal,
-    onClick: function onClick(e) {
-      return e.stopPropagation();
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: s.modalTitle
-  }, modal.novoStatus === "producao" && "Iniciar produção", modal.novoStatus === "enviado" && "Confirmar envio", modal.novoStatus === "recebido" && "Voltar para Recebido"), /*#__PURE__*/React.createElement("div", {
-    style: s.modalSub
-  }, modal.pedido.comercial, " \xB7 ", modal.pedido.cliente || modal.pedido.empresa), /*#__PURE__*/React.createElement("div", {
-    style: _objectSpread(_objectSpread({}, s.material), {}, {
-      fontSize: 12,
-      color: "#5a5550",
-      margin: "10px 0 16px",
-      lineHeight: 1.5
-    })
-  }, modal.pedido.material), modal.novoStatus === "enviado" && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: s.modalLabel
-  }, "C\xF3digo de rastreio", modal.pedido.tipo === "Correios" && " *"), /*#__PURE__*/React.createElement("input", {
-    value: rastreio,
-    onChange: function onChange(e) {
-      return setRastreio(e.target.value);
-    },
-    placeholder: modal.pedido.tipo === "Correios" ? "Ex: AB962846400BR" : "Opcional para Motoboy",
-    style: _objectSpread(_objectSpread({}, s.searchInput), {}, {
-      marginTop: 4
-    }),
-    autoFocus: true
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: confirmarUpdate,
-    disabled: salvando || modal.novoStatus === "enviado" && modal.pedido.tipo === "Correios" && !rastreio,
-    style: _objectSpread(_objectSpread({}, s.btnEnviado), {}, {
-      flex: 1,
-      opacity: salvando || modal.novoStatus === "enviado" && modal.pedido.tipo === "Correios" && !rastreio ? 0.4 : 1
-    })
-  }, salvando ? "Salvando..." : "Confirmar"), /*#__PURE__*/React.createElement("button", {
-    onClick: function onClick() {
-      return setModal(null);
-    },
-    style: _objectSpread(_objectSpread({}, s.btnVoltar), {}, {
-      flex: 1
-    })
-  }, "Cancelar")))));
 }
 
-// ── ESTILOS ──
-var s = {
-  page: {
-    background: "#f4f3f0",
-    minHeight: "100vh",
-    fontFamily: "system-ui, -apple-system, sans-serif"
-  },
-  header: {
-    background: "#ffffff",
-    borderBottom: "1px solid #e0ddd8",
-    padding: "16px 20px"
-  },
-  headerTitle: {
-    fontSize: 15,
-    fontWeight: 700,
-    color: "#1a1816",
-    letterSpacing: 0.3
-  },
-  headerSub: {
-    fontSize: 11,
-    color: "#8a8580",
-    marginTop: 2
-  },
-  counterBtn: {
-    padding: "6px 14px",
-    borderRadius: 20,
-    cursor: "pointer",
-    fontSize: 12,
-    fontFamily: "inherit",
-    display: "flex",
-    alignItems: "center"
-  },
-  btnRefresh: {
-    padding: "7px 14px",
-    background: "#f4f3f0",
-    border: "1px solid #e0ddd8",
-    borderRadius: 4,
-    cursor: "pointer",
-    fontSize: 12,
-    color: "#5a5550",
-    fontFamily: "inherit"
-  },
-  searchInput: {
-    width: "100%",
-    maxWidth: 500,
-    background: "#f8f7f5",
-    border: "1px solid #e0ddd8",
-    borderRadius: 4,
-    padding: "8px 12px",
-    fontSize: 13,
-    fontFamily: "inherit",
-    outline: "none",
-    boxSizing: "border-box",
-    color: "#1a1816"
-  },
-  content: {
-    padding: "20px"
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-    gap: 14
-  },
-  card: {
-    background: "#ffffff",
-    borderRadius: 6,
-    border: "1px solid #e0ddd8",
-    padding: 16,
-    boxShadow: "0 1px 4px rgba(0,0,0,0.05)"
-  },
-  tag: {
-    fontSize: 10,
-    fontWeight: 600,
-    padding: "3px 8px",
-    borderRadius: 10,
-    letterSpacing: 0.3
-  },
-  data: {
-    fontSize: 11,
-    color: "#8a8580"
-  },
-  solicitante: {
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#c53030",
-    marginBottom: 4
-  },
-  material: {
-    fontSize: 12,
-    color: "#3a3835",
-    lineHeight: 1.5,
-    whiteSpace: "pre-line",
-    marginBottom: 8
-  },
-  clienteBox: {
-    background: "#f8f7f5",
-    borderRadius: 4,
-    padding: "8px 10px",
-    fontSize: 11,
-    display: "flex",
-    flexDirection: "column",
-    gap: 3
-  },
-  clienteNome: {
-    fontWeight: 600,
-    color: "#1a1816"
-  },
-  clienteEmp: {
-    color: "#6a6560"
-  },
-  clienteInfo: {
-    color: "#6a6560"
-  },
-  rastreioBox: {
-    marginTop: 8,
-    fontSize: 11,
-    color: "#15803d",
-    background: "#f0fdf4",
-    border: "1px solid #bbf7d0",
-    borderRadius: 4,
-    padding: "5px 10px"
-  },
-  btnProducao: {
-    flex: 1,
-    padding: "8px 12px",
-    background: "#eff6ff",
-    color: "#1d4ed8",
-    border: "1px solid #bfdbfe",
-    borderRadius: 4,
-    cursor: "pointer",
-    fontSize: 11,
-    fontWeight: 600,
-    fontFamily: "inherit"
-  },
-  btnEnviado: {
-    flex: 1,
-    padding: "8px 12px",
-    background: "#c53030",
-    color: "#fff",
-    border: "none",
-    borderRadius: 4,
-    cursor: "pointer",
-    fontSize: 11,
-    fontWeight: 600,
-    fontFamily: "inherit"
-  },
-  btnVoltar: {
-    padding: "8px 12px",
-    background: "#f4f3f0",
-    color: "#5a5550",
-    border: "1px solid #e0ddd8",
-    borderRadius: 4,
-    cursor: "pointer",
-    fontSize: 11,
-    fontFamily: "inherit"
-  },
-  loading: {
-    textAlign: "center",
-    padding: "60px 0",
-    color: "#8a8580",
-    fontSize: 13
-  },
-  empty: {
-    textAlign: "center",
-    padding: "60px 0",
-    color: "#8a8580",
-    fontSize: 13
-  },
-  erroBox: {
-    background: "#fff5f5",
-    border: "1px solid #fcc",
-    borderRadius: 4,
-    padding: "10px 14px",
-    fontSize: 12,
-    color: "#c53030",
-    marginBottom: 16
-  },
-  overlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.45)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 100
-  },
-  modal: {
-    background: "#ffffff",
-    borderRadius: 8,
-    padding: 24,
-    width: "90%",
-    maxWidth: 400,
-    boxShadow: "0 8px 40px rgba(0,0,0,0.2)"
-  },
-  modalTitle: {
-    fontSize: 15,
-    fontWeight: 700,
-    color: "#1a1816",
-    marginBottom: 4
-  },
-  modalSub: {
-    fontSize: 12,
-    color: "#8a8580"
-  },
-  modalLabel: {
-    fontSize: 11,
-    fontWeight: 600,
-    color: "#5a5550",
-    letterSpacing: 0.3
+async function carregar() {
+  document.getElementById("loading").style.display = "block";
+  document.getElementById("grid").style.display = "none";
+  document.getElementById("empty").style.display = "none";
+  document.getElementById("erro-box").style.display = "none";
+  try {
+    const r = await fetch(SCRIPT_URL + "?action=fila");
+    const d = await r.json();
+    if (d.success) {
+      pedidos = d.pedidos.reverse();
+      atualizarContadores();
+      renderCards();
+    } else {
+      mostrarErro("Erro: " + d.error);
+    }
+  } catch(e) {
+    mostrarErro("Não foi possível conectar. Verifique a URL do Apps Script.");
   }
-};
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(FilaProducao));
+  document.getElementById("loading").style.display = "none";
+}
 
-  </script>
+function mostrarErro(msg) {
+  const el = document.getElementById("erro-box");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+
+function atualizarContadores() {
+  const counts = {recebido:0, producao:0, enviado:0};
+  pedidos.forEach(p => counts[getStatus(p)]++);
+  document.getElementById("c-recebido").textContent = counts.recebido;
+  document.getElementById("c-producao").textContent = counts.producao;
+  document.getElementById("c-enviado").textContent = counts.enviado;
+  document.getElementById("c-todos").textContent = pedidos.length;
+}
+
+function setFiltro(f) {
+  filtro = f;
+  ["recebido","producao","enviado","todos"].forEach(id => {
+    document.getElementById("f-"+id).className = "btn-filtro";
+  });
+  document.getElementById("f-"+f).classList.add("ativo-"+(f==="todos"?"todos":f));
+  renderCards();
+}
+
+function renderCards() {
+  const busca = document.getElementById("busca").value.toLowerCase();
+  const lista = pedidos.filter(p => {
+    const s = getStatus(p);
+    const matchFiltro = filtro === "todos" || s === filtro;
+    const matchBusca = !busca || [p.comercial,p.cliente,p.empresa,p.material].join(" ").toLowerCase().includes(busca);
+    return matchFiltro && matchBusca;
+  });
+
+  const grid = document.getElementById("grid");
+  const empty = document.getElementById("empty");
+
+  if (lista.length === 0) {
+    grid.style.display = "none";
+    empty.style.display = "block";
+    empty.textContent = busca ? "Nenhum pedido encontrado para essa busca." : "Nenhum pedido neste status.";
+    return;
+  }
+
+  grid.style.display = "grid";
+  empty.style.display = "none";
+
+  const tipoIcon = {Motoboy:"🛵",Correios:"📦",Representantes:"🤝"};
+
+  grid.innerHTML = lista.map(p => {
+    const status = getStatus(p);
+    const tagClass = "tag tag-"+status;
+    const statusLabel = {recebido:"Recebido",producao:"Em Produção",enviado:"Enviado"}[status];
+    const dotColor = {recebido:"#f59e0b",producao:"#3b82f6",enviado:"#22c55e"}[status];
+
+    let acoes = "";
+    if (status === "recebido") {
+      acoes = `<div class="card-actions"><button class="btn-producao" onclick='abrirModal(event,"${p.id}","producao")'>Iniciar produção →</button></div>`;
+    } else if (status === "producao") {
+      acoes = `<div class="card-actions"><button class="btn-voltar" onclick='abrirModal(event,"${p.id}","recebido")'>← Voltar</button><button class="btn-enviado" onclick='abrirModal(event,"${p.id}","enviado")'>Marcar como enviado ✓</button></div>`;
+    }
+    const enviadoInfo = status === "enviado" && p.dataEnvio ? `<div class="card-enviado-info">✓ Enviado em ${p.dataEnvio}</div>` : "";
+    const rastreioBox = p.rastreio ? `<div class="card-rastreio">🚚 ${p.rastreio}</div>` : "";
+    const clienteInfo = (p.cliente||p.empresa||p.telefone) ? `<div class="card-cliente">
+      ${p.cliente?`<strong>${p.cliente}</strong>`:""}
+      ${p.empresa?`<span style="color:#6a6560">${p.empresa}</span>`:""}
+      ${p.telefone?`<span style="color:#6a6560">📞 ${p.telefone}</span>`:""}
+    </div>` : "";
+
+    return `<div class="card" style="border-top-color:${dotColor}">
+      <div class="card-header">
+        <div class="tags">
+          <span class="${tagClass}">${statusLabel}</span>
+          <span class="tag tag-tipo">${tipoIcon[p.tipo]||""} ${p.tipo}</span>
+        </div>
+        <span class="card-data">${p.data||""}</span>
+      </div>
+      <div class="card-solicitante">${p.comercial}</div>
+      <div class="card-material">${p.material}</div>
+      ${clienteInfo}
+      ${rastreioBox}
+      ${acoes}
+      ${enviadoInfo}
+    </div>`;
+  }).join("");
+}
+
+function abrirModal(e, id, novoStatus) {
+  e.stopPropagation();
+  modalPedido = pedidos.find(p => p.id === id);
+  modalNovoStatus = novoStatus;
+  if (!modalPedido) return;
+  const titulos = {producao:"Iniciar produção",enviado:"Confirmar envio",recebido:"Voltar para Recebido"};
+  document.getElementById("modal-titulo").textContent = titulos[novoStatus];
+  document.getElementById("modal-sub").textContent = modalPedido.comercial + (modalPedido.cliente||modalPedido.empresa ? " · "+(modalPedido.cliente||modalPedido.empresa) : "");
+  document.getElementById("modal-material").textContent = modalPedido.material;
+  const mostrarRastreio = novoStatus === "enviado";
+  document.getElementById("modal-rastreio-field").style.display = mostrarRastreio ? "block" : "none";
+  if (mostrarRastreio) {
+    document.getElementById("modal-rastreio-label").textContent = "Código de rastreio" + (modalPedido.tipo==="Correios"?" *":"");
+    document.getElementById("modal-rastreio").value = "";
+    document.getElementById("modal-rastreio").placeholder = modalPedido.tipo==="Correios" ? "Ex: AB962846400BR" : "Opcional para Motoboy";
+  }
+  document.getElementById("modal").style.display = "flex";
+}
+
+function fecharModal() {
+  document.getElementById("modal").style.display = "none";
+  modalPedido = null; modalNovoStatus = null;
+}
+
+async function confirmarUpdate() {
+  if (!modalPedido) return;
+  const rastreio = document.getElementById("modal-rastreio").value.trim();
+  if (modalNovoStatus === "enviado" && modalPedido.tipo === "Correios" && !rastreio) {
+    alert("Informe o código de rastreio para envios pelos Correios.");
+    return;
+  }
+  document.getElementById("modal-confirmar").textContent = "Salvando...";
+  document.getElementById("modal-confirmar").disabled = true;
+  const payload = {
+    action: "update_status",
+    id: modalPedido.id,
+    recebido: true,
+    emProducao: modalNovoStatus === "producao" || modalNovoStatus === "enviado",
+    finalizado: modalNovoStatus === "enviado",
+    rastreio: rastreio,
+  };
+  try {
+    await fetch(SCRIPT_URL, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),mode:"no-cors"});
+    // Atualiza local
+    const idx = pedidos.findIndex(p => p.id === modalPedido.id);
+    if (idx !== -1) {
+      pedidos[idx].recebido = true;
+      pedidos[idx].emProducao = payload.emProducao;
+      pedidos[idx].finalizado = payload.finalizado;
+      if (rastreio) pedidos[idx].rastreio = rastreio;
+      if (payload.finalizado) pedidos[idx].dataEnvio = new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"});
+    }
+    atualizarContadores();
+    renderCards();
+    fecharModal();
+  } catch(e) {
+    alert("Erro ao salvar. Tente novamente.");
+  }
+  document.getElementById("modal-confirmar").textContent = "Confirmar";
+  document.getElementById("modal-confirmar").disabled = false;
+}
+
+// Carrega ao abrir
+carregar();
+</script>
 </body>
 </html>
