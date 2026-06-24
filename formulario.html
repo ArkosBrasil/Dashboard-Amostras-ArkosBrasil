@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arkos — Solicitação de Amostras</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f4f3f0; font-family: system-ui, -apple-system, sans-serif; }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #c53030 !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+
+// ── Cole aqui a URL do seu Web App do Apps Script ──
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfENYrCbmgdBzI5qgn2sy0llromxbaXd5u14kxT9HkRXtIMqBg7xGqqbbgw9C9uiKC/exec";
+
+const SOLICITANTES = [
+  "Sarah", "Tati", "Tamara", "Greyce", "Marco Aurélio",
+  "Samantha", "Larissa", "Outro"
+];
+
+const REPRESENTANTES = [
+  "Abitare", "Adson", "Amós", "Archblend", "Atrio",
+  "BoBrasil", "Casa Galle", "Ecogreen", "Innovare", "Jordan",
+  "Kely", "Miguel (Forefront)", "Nivaldo", "Pérzia", "Raphis",
+  "Screenydecor", "Solutio", "Stella", "Steerman", "Sunfix",
+  "Teamflex", "Viggiano", "Vitor", "Wedo", "Outro"
+];
+
+const URGENCIAS = [
+  { value: "Normal", label: "Normal", color: "#2a7a4a", bg: "#f0faf2" },
+  { value: "Urgente", label: "⚡ Urgente", color: "#b06010", bg: "#fffbf0" },
+  { value: "Muito Urgente", label: "🔴 Muito Urgente", color: "#c53030", bg: "#fff5f5" },
+];
+
+const EMPTY = {
+  solicitante: "", solicitanteOutro: "", tipoEnvio: "",
+  material: "", nomeCliente: "", empresa: "",
+  cpfCnpj: "", endereco: "", cep: "", email: "",
+  telefone: "", urgencia: "Normal", observacao: "",
+};
+
+export default function FormularioAmostras() {
+  const [form, setForm] = useState(EMPTY);
+  const [status, setStatus] = useState("idle");
+
+  const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+
+  const isCorreios = form.tipoEnvio === "Correios";
+  const solicitanteValido = form.solicitante === "Outro"
+    ? form.solicitanteOutro.trim() !== ""
+    : form.solicitante !== "";
+  const cpfObrigatorio = isCorreios && form.cpfCnpj.trim() === "";
+  const podeEnviar = solicitanteValido
+    && form.material.trim() !== ""
+    && form.tipoEnvio !== ""
+    && form.nomeCliente.trim() !== ""
+    && form.endereco.trim() !== ""
+    && form.telefone.trim() !== ""
+    && !cpfObrigatorio;
+
+  const buscarCEP = async () => {
+    const cep = form.cep.replace(/\D/g, "");
+    if (cep.length !== 8) return;
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setForm((f) => ({
+          ...f,
+          endereco: `${data.logradouro}, ${data.bairro}, ${data.localidade} - ${data.uf}`,
+        }));
+      }
+    } catch (e) {}
+  };
+
+  const enviar = async () => {
+    if (!podeEnviar) return;
+    setStatus("sending");
+    const payload = {
+      ...form,
+      solicitante: form.solicitante === "Outro" ? form.solicitanteOutro : form.solicitante,
+    };
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        mode: "no-cors",
+      });
+      setStatus("success");
+    } catch (err) {
+      setStatus("error");
+    }
+  };
+
+  const reiniciar = () => { setForm(EMPTY); setStatus("idle"); };
+
+  // ── TELA DE SUCESSO ──
+  if (status === "success") {
+    return (
+      <div style={styles.page}>
+        <div style={{ maxWidth: 680, margin: "60px auto", textAlign: "center", padding: 24 }}>
+          <div style={{ fontSize: 52, marginBottom: 16 }}>✓</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: "#1a1816", marginBottom: 8 }}>
+            Solicitação enviada!
+          </div>
+          <div style={{ fontSize: 13, color: "#6a6560", marginBottom: 32 }}>
+            O time de amostras receberá a solicitação e atualizará o status em breve.
+          </div>
+          <button onClick={reiniciar} style={styles.btnPrimary}>
+            Nova solicitação
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={styles.page}>
+      {/* Header */}
+      <div style={styles.header}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <img
+            src="data:image/png;base64,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"
+            alt="Arkos Brasil"
+            style={{ height: 40, objectFit: "contain" }}
+          />
+          <div style={{ textAlign: "right" }}>
+            <div style={styles.headerTitle}>Solicitação de Amostras</div>
+            <div style={styles.headerSub}>Preencha e envie para o time de amostras</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={styles.content}>
+
+        {/* ── BLOCO 1: SOLICITANTE + URGÊNCIA ── */}
+        <div style={styles.grid2}>
+          <div style={styles.field}>
+            <label style={styles.label}>
+              {form.tipoEnvio === "Representantes" ? "Representante *" : "Solicitante *"}
+            </label>
+            <select value={form.solicitante} onChange={set("solicitante")} style={styles.input}>
+              <option value="">Selecione...</option>
+              {(form.tipoEnvio === "Representantes" ? REPRESENTANTES : SOLICITANTES).map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+            {form.solicitante === "Outro" && (
+              <input
+                value={form.solicitanteOutro}
+                onChange={set("solicitanteOutro")}
+                placeholder="Digite o nome..."
+                style={{ ...styles.input, marginTop: 6 }}
+                autoFocus
+              />
+            )}
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>Tipo de envio *</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[
+                { value: "Motoboy", label: "🛵 Motoboy" },
+                { value: "Correios", label: "📦 Correios" },
+                { value: "Representantes", label: "🤝 Representantes" },
+              ].map((tipo) => (
+                <button
+                  key={tipo.value}
+                  onClick={() => setForm((f) => ({ ...f, tipoEnvio: tipo.value, solicitante: '', solicitanteOutro: '' }))}
+                  style={{
+                    ...styles.tipoBtn,
+                    background: form.tipoEnvio === tipo.value ? "#fff5f5" : "#f8f7f5",
+                    border: `2px solid ${form.tipoEnvio === tipo.value ? "#c53030" : "#e0ddd8"}`,
+                    color: form.tipoEnvio === tipo.value ? "#c53030" : "#6a6560",
+                    fontWeight: form.tipoEnvio === tipo.value ? 700 : 400,
+                  }}
+                >
+                  {tipo.label}
+                </button>
+              ))}
+            </div>
+            {isCorreios && (
+              <div style={styles.correiosHint}>
+                Fora de SP e Grande SP — CPF/CNPJ obrigatório
+              </div>
+            )}
+            {form.tipoEnvio === "Representantes" && (
+              <div style={{ ...styles.correiosHint, color: "#5a5550", background: "#f8f7f5", borderColor: "#d8d5d0" }}>
+                Pedido vai para a aba Pedidos Representantes - Especiais
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── URGÊNCIA ── */}
+        <div style={styles.field}>
+          <label style={styles.label}>Prioridade</label>
+          <div style={styles.urgRow}>
+            {URGENCIAS.map((u) => (
+              <button
+                key={u.value}
+                onClick={() => setForm((f) => ({ ...f, urgencia: u.value }))}
+                style={{
+                  ...styles.urgBtn,
+                  background: form.urgencia === u.value ? u.bg : "#f8f7f5",
+                  border: `2px solid ${form.urgencia === u.value ? u.color : "#e0ddd8"}`,
+                  color: form.urgencia === u.value ? u.color : "#6a6560",
+                  fontWeight: form.urgencia === u.value ? 700 : 400,
+                }}
+              >
+                {u.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── MATERIAL ── */}
+        <div style={styles.field}>
+          <label style={styles.label}>Material / Amostras solicitadas *</label>
+          <textarea
+            value={form.material}
+            onChange={set("material")}
+            placeholder={"Ex:\n- Kit completo Arkowood E + EP\n- 3 réguas K 50x30mm teka - 30cm\n- Caixa KP com todas as cores"}
+            style={{ ...styles.input, height: 110, resize: "vertical" }}
+          />
+        </div>
+
+        {/* ── DADOS DO CLIENTE ── */}
+        <div style={styles.sectionLabel}>Dados do cliente</div>
+
+        <div style={styles.grid2}>
+          <div style={styles.field}>
+            <label style={styles.label}>Nome / A/C *</label>
+            <input value={form.nomeCliente} onChange={set("nomeCliente")} style={styles.input} placeholder="Nome do contato" />
+          </div>
+          <div style={styles.field}>
+            <label style={styles.label}>Empresa</label>
+            <input value={form.empresa} onChange={set("empresa")} style={styles.input} placeholder="Nome do escritório ou empresa" />
+          </div>
+        </div>
+
+        <div style={styles.grid2}>
+          {/* CPF/CNPJ — obrigatório se Correios */}
+          <div style={styles.field}>
+            <label style={{
+              ...styles.label,
+              color: isCorreios ? "#c53030" : "#5a5550",
+            }}>
+              CPF / CNPJ {isCorreios ? "*" : ""}
+            </label>
+            <input
+              value={form.cpfCnpj}
+              onChange={set("cpfCnpj")}
+              style={{
+                ...styles.input,
+                borderColor: cpfObrigatorio ? "#c53030" : "#d8d5d0",
+                background: isCorreios ? "#fffafa" : "#ffffff",
+              }}
+              placeholder={isCorreios ? "Obrigatório para Correios" : "Opcional"}
+            />
+            {isCorreios && (
+              <div style={{ fontSize: 10, color: "#c53030", marginTop: 2 }}>
+                Em caso de Correios, obrigatório o preenchimento
+              </div>
+            )}
+          </div>
+
+          <div style={styles.field}>
+            <label style={styles.label}>CEP</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                value={form.cep}
+                onChange={set("cep")}
+                onBlur={buscarCEP}
+                style={{ ...styles.input, flex: 1 }}
+                placeholder="00000-000"
+                maxLength={9}
+              />
+              <button onClick={buscarCEP} style={styles.btnSecondary}>
+                Buscar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style={styles.field}>
+          <label style={styles.label}>Endereço completo *</label>
+          <input value={form.endereco} onChange={set("endereco")} style={styles.input} placeholder="Rua, número, complemento, bairro, cidade - UF" />
+        </div>
+
+        <div style={styles.grid2}>
+          <div style={styles.field}>
+            <label style={styles.label}>Email</label>
+            <input value={form.email} onChange={set("email")} style={styles.input} placeholder="email@cliente.com" type="email" />
+          </div>
+          <div style={styles.field}>
+            <label style={styles.label}>Telefone / WhatsApp *</label>
+            <input value={form.telefone} onChange={set("telefone")} style={styles.input} placeholder="(11) 99999-9999" />
+          </div>
+        </div>
+
+        {/* ── OBSERVAÇÃO ── */}
+        <div style={styles.field}>
+          <label style={styles.label}>Observação</label>
+          <textarea
+            value={form.observacao}
+            onChange={set("observacao")}
+            placeholder="Informações adicionais, retirada no galpão, data específica, etc."
+            style={{ ...styles.input, height: 72, resize: "vertical" }}
+          />
+        </div>
+
+        {/* Feedback de validação */}
+        {!podeEnviar && (form.solicitante || form.material || form.tipoEnvio) && (
+          <div style={{ fontSize: 11, color: "#aaa" }}>
+            {!solicitanteValido && "• Informe o solicitante. "}
+            {!form.tipoEnvio && "• Selecione o tipo de envio. "}
+            {!form.material.trim() && "• Informe o material. "}
+            {!form.nomeCliente.trim() && "• Informe o nome do cliente. "}
+            {!form.endereco.trim() && "• Informe o endereço. "}
+            {!form.telefone.trim() && "• Informe o telefone. "}
+            {cpfObrigatorio && "• CPF/CNPJ obrigatório para Correios."}
+          </div>
+        )}
+
+        {status === "error" && (
+          <div style={{ background: "#fff5f5", border: "1px solid #fcc", borderRadius: 4, padding: "10px 14px", fontSize: 12, color: "#c53030" }}>
+            Erro ao enviar. Verifique sua conexão e tente novamente.
+          </div>
+        )}
+
+        {/* Botão enviar */}
+        <button
+          onClick={enviar}
+          disabled={status === "sending" || !podeEnviar}
+          style={{
+            ...styles.btnPrimary,
+            width: "100%",
+            marginTop: 8,
+            opacity: !podeEnviar ? 0.4 : 1,
+            cursor: !podeEnviar ? "not-allowed" : "pointer",
+          }}
+        >
+          {status === "sending" ? "Enviando..." : "Enviar solicitação →"}
+        </button>
+
+      </div>
+    </div>
+  );
+}
+
+// ── ESTILOS ──
+const styles = {
+  page: {
+    background: "#f4f3f0",
+    minHeight: "100vh",
+    fontFamily: "system-ui, -apple-system, sans-serif",
+  },
+  header: {
+    background: "#ffffff",
+    borderBottom: "1px solid #e0ddd8",
+    padding: "14px 28px",
+  },
+  headerTitle: {
+    fontSize: 15,
+    fontWeight: 700,
+    color: "#1a1816",
+    letterSpacing: 0.3,
+  },
+  headerSub: {
+    fontSize: 11,
+    color: "#8a8580",
+    marginTop: 2,
+  },
+  content: {
+    maxWidth: 680,
+    margin: "0 auto",
+    padding: "24px 20px 48px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+  },
+  urgRow: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  urgBtn: {
+    padding: "8px 18px",
+    borderRadius: 20,
+    cursor: "pointer",
+    fontSize: 12,
+    letterSpacing: 0.3,
+    transition: "all .15s",
+    flex: 1,
+    minWidth: 100,
+    border: "2px solid",
+  },
+  tipoBtn: {
+    flex: 1,
+    padding: "9px 12px",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontSize: 13,
+    fontFamily: "inherit",
+    transition: "all .15s",
+    border: "2px solid",
+  },
+  correiosHint: {
+    fontSize: 10,
+    color: "#b06010",
+    background: "#fffbf0",
+    border: "1px solid #f5dcb0",
+    borderRadius: 3,
+    padding: "4px 8px",
+    marginTop: 4,
+  },
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: 1.5,
+    color: "#8a8580",
+    textTransform: "uppercase",
+    borderBottom: "1px solid #e0ddd8",
+    paddingBottom: 6,
+    marginTop: 4,
+  },
+  grid2: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 12,
+  },
+  field: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 5,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: 600,
+    color: "#5a5550",
+    letterSpacing: 0.3,
+  },
+  input: {
+    background: "#ffffff",
+    border: "1px solid #d8d5d0",
+    borderRadius: 4,
+    color: "#1a1816",
+    padding: "8px 10px",
+    fontSize: 13,
+    fontFamily: "inherit",
+    outline: "none",
+    width: "100%",
+    boxSizing: "border-box",
+    transition: "border .15s",
+  },
+  btnPrimary: {
+    padding: "11px 24px",
+    background: "#c53030",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: 4,
+    cursor: "pointer",
+    fontSize: 13,
+    fontWeight: 600,
+    letterSpacing: 0.5,
+    fontFamily: "inherit",
+    transition: "opacity .15s",
+  },
+  btnSecondary: {
+    padding: "8px 12px",
+    background: "#f4f3f0",
+    color: "#5a5550",
+    border: "1px solid #d8d5d0",
+    borderRadius: 4,
+    cursor: "pointer",
+    fontSize: 12,
+    fontFamily: "inherit",
+    whiteSpace: "nowrap",
+  },
+};
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<FormularioAmostras />);
+  </script>
+</body>
+</html>

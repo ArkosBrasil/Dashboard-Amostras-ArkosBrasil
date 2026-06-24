@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arkos — Fila de Produção</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f4f3f0; font-family: system-ui, -apple-system, sans-serif; }
+    input:focus { outline: none; border-color: #c53030 !important; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwfENYrCbmgdBzI5qgn2sy0llromxbaXd5u14kxT9HkRXtIMqBg7xGqqbbgw9C9uiKC/exec"; // mesma URL do formulário
+
+// ── Lógica de status ──
+const getStatus = (p) => {
+  if (p.finalizado) return "enviado";
+  if (p.emProducao) return "producao";
+  return "recebido";
+};
+
+const STATUS_CONFIG = {
+  recebido:  { label: "Recebido",    color: "#b06010", bg: "#fffbf0", border: "#f5dcb0", dot: "#f59e0b" },
+  producao:  { label: "Em Produção", color: "#1d4ed8", bg: "#eff6ff", border: "#bfdbfe", dot: "#3b82f6" },
+  enviado:   { label: "Enviado",     color: "#15803d", bg: "#f0fdf4", border: "#bbf7d0", dot: "#22c55e" },
+};
+
+const TIPO_ICON = { Motoboy: "🛵", Correios: "📦", Representantes: "🤝" };
+
+export default function FilaProducao() {
+  const [pedidos, setPedidos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState("");
+  const [filtro, setFiltro] = useState("recebido"); // recebido | producao | enviado | todos
+  const [busca, setBusca] = useState("");
+  const [modal, setModal] = useState(null); // { pedido, novoStatus }
+  const [rastreio, setRastreio] = useState("");
+  const [salvando, setSalvando] = useState(false);
+
+  const carregar = useCallback(async () => {
+    setLoading(true);
+    setErro("");
+    try {
+      const res = await fetch(`${APPS_SCRIPT_URL}?action=fila`);
+      const data = await res.json();
+      if (data.success) {
+        // Ordena: mais recentes primeiro
+        const sorted = [...data.pedidos].reverse();
+        setPedidos(sorted);
+      } else {
+        setErro("Erro ao carregar pedidos: " + data.error);
+      }
+    } catch (e) {
+      setErro("Não foi possível conectar. Verifique a URL do Apps Script.");
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { carregar(); }, [carregar]);
+
+  const abrirModal = (pedido, novoStatus) => {
+    setRastreio("");
+    setModal({ pedido, novoStatus });
+  };
+
+  const confirmarUpdate = async () => {
+    if (!modal) return;
+    setSalvando(true);
+
+    const { pedido, novoStatus } = modal;
+    const payload = {
+      action: "update_status",
+      id: pedido.id,
+      recebido: true,
+      emProducao: novoStatus === "producao" || novoStatus === "enviado",
+      finalizado: novoStatus === "enviado",
+      rastreio: rastreio || "",
+    };
+
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        mode: "no-cors",
+      });
+
+      // Atualiza localmente sem recarregar tudo
+      setPedidos(prev => prev.map(p =>
+        p.id === pedido.id
+          ? { ...p, recebido: true, emProducao: payload.emProducao, finalizado: payload.finalizado, rastreio: rastreio || p.rastreio }
+          : p
+      ));
+      setModal(null);
+    } catch (e) {
+      setErro("Erro ao salvar. Tente novamente.");
+    }
+    setSalvando(false);
+  };
+
+  // Filtragem
+  const pedidosFiltrados = pedidos.filter(p => {
+    const status = getStatus(p);
+    const matchFiltro = filtro === "todos" || status === filtro;
+    const matchBusca = !busca || [p.comercial, p.cliente, p.empresa, p.material]
+      .join(" ").toLowerCase().includes(busca.toLowerCase());
+    return matchFiltro && matchBusca;
+  });
+
+  const contagem = {
+    recebido: pedidos.filter(p => getStatus(p) === "recebido").length,
+    producao: pedidos.filter(p => getStatus(p) === "producao").length,
+    enviado:  pedidos.filter(p => getStatus(p) === "enviado").length,
+  };
+
+  return (
+    <div style={s.page}>
+
+      {/* ── HEADER ── */}
+      <div style={s.header}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 3, height: 28, background: "#c53030" }} />
+            <div>
+              <div style={s.headerTitle}>Fila de Produção — Amostras</div>
+              <div style={s.headerSub}>Arkos Brasil · Time de Amostras</div>
+            </div>
+          </div>
+          <button onClick={carregar} style={s.btnRefresh} title="Atualizar">
+            ↻ Atualizar
+          </button>
+        </div>
+
+        {/* Contadores */}
+        <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+          {Object.entries(contagem).map(([key, val]) => {
+            const cfg = STATUS_CONFIG[key];
+            return (
+              <button key={key} onClick={() => setFiltro(key)} style={{
+                ...s.counterBtn,
+                background: filtro === key ? cfg.bg : "#f8f7f5",
+                border: `1.5px solid ${filtro === key ? cfg.border : "#e0ddd8"}`,
+                color: filtro === key ? cfg.color : "#6a6560",
+              }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.dot, display: "inline-block", marginRight: 6 }} />
+                {cfg.label} <strong style={{ marginLeft: 4 }}>{val}</strong>
+              </button>
+            );
+          })}
+          <button onClick={() => setFiltro("todos")} style={{
+            ...s.counterBtn,
+            background: filtro === "todos" ? "#f1f5f9" : "#f8f7f5",
+            border: `1.5px solid ${filtro === "todos" ? "#94a3b8" : "#e0ddd8"}`,
+            color: filtro === "todos" ? "#334155" : "#6a6560",
+          }}>
+            Todos <strong style={{ marginLeft: 4 }}>{pedidos.length}</strong>
+          </button>
+        </div>
+      </div>
+
+      {/* ── BUSCA ── */}
+      <div style={{ padding: "12px 20px", background: "#ffffff", borderBottom: "1px solid #e0ddd8" }}>
+        <input
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          placeholder="Buscar por solicitante, cliente, empresa ou material..."
+          style={s.searchInput}
+        />
+      </div>
+
+      {/* ── CONTEÚDO ── */}
+      <div style={s.content}>
+        {erro && (
+          <div style={s.erroBox}>{erro}</div>
+        )}
+
+        {loading ? (
+          <div style={s.loading}>Carregando pedidos...</div>
+        ) : pedidosFiltrados.length === 0 ? (
+          <div style={s.empty}>
+            {busca ? "Nenhum pedido encontrado para essa busca." : "Nenhum pedido neste status."}
+          </div>
+        ) : (
+          <div style={s.grid}>
+            {pedidosFiltrados.map(pedido => {
+              const status = getStatus(pedido);
+              const cfg = STATUS_CONFIG[status];
+              return (
+                <div key={pedido.id} style={{ ...s.card, borderTop: `3px solid ${cfg.dot}` }}>
+
+                  {/* Card header */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      <span style={{ ...s.tag, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.border}` }}>
+                        {cfg.label}
+                      </span>
+                      <span style={{ ...s.tag, background: "#f4f3f0", color: "#6a6560" }}>
+                        {TIPO_ICON[pedido.tipo]} {pedido.tipo}
+                      </span>
+                    </div>
+                    <span style={s.data}>{pedido.data}</span>
+                  </div>
+
+                  {/* Solicitante */}
+                  <div style={s.solicitante}>{pedido.comercial}</div>
+
+                  {/* Material */}
+                  <div style={s.material}>{pedido.material}</div>
+
+                  {/* Cliente */}
+                  {(pedido.cliente || pedido.empresa) && (
+                    <div style={s.clienteBox}>
+                      {pedido.cliente && <div style={s.clienteNome}>{pedido.cliente}</div>}
+                      {pedido.empresa && <div style={s.clienteEmp}>{pedido.empresa}</div>}
+                      {pedido.telefone && <div style={s.clienteInfo}>📞 {pedido.telefone}</div>}
+                      {pedido.endereco && <div style={s.clienteInfo}>📍 {pedido.endereco}</div>}
+                    </div>
+                  )}
+
+                  {/* Rastreio */}
+                  {pedido.rastreio && (
+                    <div style={s.rastreioBox}>
+                      🚚 {pedido.rastreio}
+                    </div>
+                  )}
+
+                  {/* Ações */}
+                  {status !== "enviado" && (
+                    <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                      {status === "recebido" && (
+                        <button onClick={() => abrirModal(pedido, "producao")} style={s.btnProducao}>
+                          Iniciar produção →
+                        </button>
+                      )}
+                      {status === "producao" && (
+                        <>
+                          <button onClick={() => abrirModal(pedido, "recebido")} style={s.btnVoltar}>
+                            ← Voltar
+                          </button>
+                          <button onClick={() => abrirModal(pedido, "enviado")} style={s.btnEnviado}>
+                            Marcar como enviado ✓
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {pedido.dataEnvio && status === "enviado" && (
+                    <div style={{ marginTop: 10, fontSize: 11, color: "#15803d" }}>
+                      ✓ Enviado em {pedido.dataEnvio}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── MODAL DE CONFIRMAÇÃO ── */}
+      {modal && (
+        <div style={s.overlay} onClick={() => setModal(null)}>
+          <div style={s.modal} onClick={e => e.stopPropagation()}>
+            <div style={s.modalTitle}>
+              {modal.novoStatus === "producao" && "Iniciar produção"}
+              {modal.novoStatus === "enviado"  && "Confirmar envio"}
+              {modal.novoStatus === "recebido" && "Voltar para Recebido"}
+            </div>
+            <div style={s.modalSub}>
+              {modal.pedido.comercial} · {modal.pedido.cliente || modal.pedido.empresa}
+            </div>
+            <div style={{ ...s.material, fontSize: 12, color: "#5a5550", margin: "10px 0 16px", lineHeight: 1.5 }}>
+              {modal.pedido.material}
+            </div>
+
+            {modal.novoStatus === "enviado" && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={s.modalLabel}>
+                  Código de rastreio
+                  {modal.pedido.tipo === "Correios" && " *"}
+                </label>
+                <input
+                  value={rastreio}
+                  onChange={e => setRastreio(e.target.value)}
+                  placeholder={modal.pedido.tipo === "Correios" ? "Ex: AB962846400BR" : "Opcional para Motoboy"}
+                  style={{ ...s.searchInput, marginTop: 4 }}
+                  autoFocus
+                />
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={confirmarUpdate}
+                disabled={salvando || (modal.novoStatus === "enviado" && modal.pedido.tipo === "Correios" && !rastreio)}
+                style={{
+                  ...s.btnEnviado,
+                  flex: 1,
+                  opacity: (salvando || (modal.novoStatus === "enviado" && modal.pedido.tipo === "Correios" && !rastreio)) ? 0.4 : 1,
+                }}
+              >
+                {salvando ? "Salvando..." : "Confirmar"}
+              </button>
+              <button onClick={() => setModal(null)} style={{ ...s.btnVoltar, flex: 1 }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── ESTILOS ──
+const s = {
+  page: { background: "#f4f3f0", minHeight: "100vh", fontFamily: "system-ui, -apple-system, sans-serif" },
+  header: { background: "#ffffff", borderBottom: "1px solid #e0ddd8", padding: "16px 20px" },
+  headerTitle: { fontSize: 15, fontWeight: 700, color: "#1a1816", letterSpacing: 0.3 },
+  headerSub: { fontSize: 11, color: "#8a8580", marginTop: 2 },
+  counterBtn: { padding: "6px 14px", borderRadius: 20, cursor: "pointer", fontSize: 12, fontFamily: "inherit", display: "flex", alignItems: "center" },
+  btnRefresh: { padding: "7px 14px", background: "#f4f3f0", border: "1px solid #e0ddd8", borderRadius: 4, cursor: "pointer", fontSize: 12, color: "#5a5550", fontFamily: "inherit" },
+  searchInput: { width: "100%", maxWidth: 500, background: "#f8f7f5", border: "1px solid #e0ddd8", borderRadius: 4, padding: "8px 12px", fontSize: 13, fontFamily: "inherit", outline: "none", boxSizing: "border-box", color: "#1a1816" },
+  content: { padding: "20px" },
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 14 },
+  card: { background: "#ffffff", borderRadius: 6, border: "1px solid #e0ddd8", padding: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" },
+  tag: { fontSize: 10, fontWeight: 600, padding: "3px 8px", borderRadius: 10, letterSpacing: 0.3 },
+  data: { fontSize: 11, color: "#8a8580" },
+  solicitante: { fontSize: 13, fontWeight: 700, color: "#c53030", marginBottom: 4 },
+  material: { fontSize: 12, color: "#3a3835", lineHeight: 1.5, whiteSpace: "pre-line", marginBottom: 8 },
+  clienteBox: { background: "#f8f7f5", borderRadius: 4, padding: "8px 10px", fontSize: 11, display: "flex", flexDirection: "column", gap: 3 },
+  clienteNome: { fontWeight: 600, color: "#1a1816" },
+  clienteEmp: { color: "#6a6560" },
+  clienteInfo: { color: "#6a6560" },
+  rastreioBox: { marginTop: 8, fontSize: 11, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 4, padding: "5px 10px" },
+  btnProducao: { flex: 1, padding: "8px 12px", background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", borderRadius: 4, cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: "inherit" },
+  btnEnviado: { flex: 1, padding: "8px 12px", background: "#c53030", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: "inherit" },
+  btnVoltar: { padding: "8px 12px", background: "#f4f3f0", color: "#5a5550", border: "1px solid #e0ddd8", borderRadius: 4, cursor: "pointer", fontSize: 11, fontFamily: "inherit" },
+  loading: { textAlign: "center", padding: "60px 0", color: "#8a8580", fontSize: 13 },
+  empty: { textAlign: "center", padding: "60px 0", color: "#8a8580", fontSize: 13 },
+  erroBox: { background: "#fff5f5", border: "1px solid #fcc", borderRadius: 4, padding: "10px 14px", fontSize: 12, color: "#c53030", marginBottom: 16 },
+  overlay: { position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 },
+  modal: { background: "#ffffff", borderRadius: 8, padding: 24, width: "90%", maxWidth: 400, boxShadow: "0 8px 40px rgba(0,0,0,0.2)" },
+  modalTitle: { fontSize: 15, fontWeight: 700, color: "#1a1816", marginBottom: 4 },
+  modalSub: { fontSize: 12, color: "#8a8580" },
+  modalLabel: { fontSize: 11, fontWeight: 600, color: "#5a5550", letterSpacing: 0.3 },
+};
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<FilaProducao />);
+  </script>
+</body>
+</html>
