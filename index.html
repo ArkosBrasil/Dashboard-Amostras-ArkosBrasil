@@ -215,23 +215,11 @@ function startApp(){
   timer = setInterval(loadData, 60000);
 }
 
-function fetchJSONP(url){
-  return new Promise((res,rej)=>{
-    const cb='_a'+Date.now();
-    const s=document.createElement('script');
-    const t=setTimeout(()=>{cleanup();rej(new Error('Timeout'));},18000);
-    function cleanup(){clearTimeout(t);delete window[cb];s.parentNode&&s.parentNode.removeChild(s);}
-    window[cb]=d=>{cleanup();res(d);};
-    s.onerror=()=>{cleanup();rej(new Error('Erro de rede'));};
-    s.src=url+(url.includes('?')?'&':'?')+'callback='+cb+'&t='+Date.now();
-    document.head.appendChild(s);
-  });
-}
-
 async function loadData(){
   setSS('loading','Atualizando…');
   try{
-    const d = await fetchJSONP(API_URL);
+    const r = await fetch(API_URL+'?t='+Date.now());
+    const d = await r.json();
     allData = d.sheets || {};
     const ts = d.timestamp ? new Date(d.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '';
     setSS('ok','Atualizado'+(ts?' às '+ts:''));
