@@ -219,7 +219,7 @@ function fetchJSONP(url){
   return new Promise((res,rej)=>{
     const cb='_a'+Date.now();
     const s=document.createElement('script');
-    const t=setTimeout(()=>{cleanup();rej(new Error('Timeout'));'},18000);
+    const t=setTimeout(()=>{cleanup();rej(new Error('Timeout'));},18000);
     function cleanup(){clearTimeout(t);delete window[cb];s.parentNode&&s.parentNode.removeChild(s);}
     window[cb]=d=>{cleanup();res(d);};
     s.onerror=()=>{cleanup();rej(new Error('Erro de rede'));};
