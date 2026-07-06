@@ -102,6 +102,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .track-step{flex:1;text-align:center;font-size:12px;padding:7px 4px;border-top:2px solid var(--border);color:var(--text3);}
 .track-step.done{border-top-color:#3B6D11;color:#3B6D11;font-weight:500;}
 .track-step.active{border-top-color:#BA7517;color:#854F0B;font-weight:500;}
+
+.search-wrap{padding:10px 0 4px;margin-bottom:8px;}
+.search-input{width:100%;max-width:480px;background:#f8f7f5;border:1px solid #d8d5d0;border-radius:20px;padding:8px 16px 8px 36px;font-size:13px;font-family:inherit;outline:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a0a09c' stroke-width='2.5'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center;transition:border-color .15s;}
+.search-input:focus{border-color:#c53030;background-color:#fff;}
+.search-clear{display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#a0a09c;font-size:16px;}
+.search-rel{position:relative;display:inline-block;width:100%;max-width:480px;}
+.search-count{font-size:11px;color:#a0a09c;margin-top:5px;}
 </style>
 </head>
 <body>
@@ -153,6 +160,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="fgroup"><div class="fgroup-label">Canal</div><div class="fbuts" id="f-canal"></div></div>
       </div>
     </div>
+    <div class="search-wrap">
+      <div class="search-rel">
+        <input class="search-input" id="search-box" type="text" placeholder="Buscar por cliente, material, comercial…" oninput="onSearch(this.value)" autocomplete="off"/>
+        <button class="search-clear" id="search-clear" onclick="clearSearch()">×</button>
+      </div>
+      <div class="search-count" id="search-count"></div>
+    </div>
     <div class="divider"></div>
     <div class="metrics" id="metrics"></div>
     <div class="legend" id="legend"></div>
@@ -186,6 +200,7 @@ let selStatus = new Set(['all']);
 let selCanal  = new Set(['Todos']);
 let enviadoMonth = null;
 let weekOffset   = 0;
+let searchTerm   = '';
 
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
 
@@ -387,6 +402,7 @@ function renderContent(){
 function renderStatusView(){
   let orders=getOrders();
   if(!selCom.has('Todos')){orders=orders.filter(o=>selCom.has(o.com));}
+  if(searchTerm){orders=orders.filter(matchesSearch);}
   const showAll=selStatus.has('all');
   if(!showAll){orders=orders.filter(o=>selStatus.has(getStatus(o).key));}
   const onlyEnv=!showAll&&selStatus.size===1&&selStatus.has('env');
@@ -592,6 +608,32 @@ function changeWeek(d){weekOffset+=d;renderFilters();renderContent();}
 
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function escAttr(s){return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+
+function onSearch(val){
+  searchTerm = val.trim().toLowerCase();
+  document.getElementById('search-clear').style.display = searchTerm ? 'block' : 'none';
+  renderContent();
+  const total = currentView==='status' ? getFilteredOrders().length : 0;
+  document.getElementById('search-count').textContent = searchTerm && currentView==='status' ? total + ' resultado(s)' : '';
+}
+function clearSearch(){
+  document.getElementById('search-box').value = '';
+  onSearch('');
+}
+function matchesSearch(o){
+  if(!searchTerm) return true;
+  const fields = [o.com||'', o.cli||'', o.empresa||'', o.mat||'', o.cnpj||''].join(' ').toLowerCase();
+  return fields.includes(searchTerm);
+}
+function getFilteredOrders(){
+  let orders = currentView === 'crono' ? getAllOrders().filter(o=>!o.final) : getOrders();
+  if(!selCom.has('Todos')) orders = orders.filter(o=>selCom.has(o.com));
+  const showAll = selStatus.has('all');
+  if(!showAll) orders = orders.filter(o=>selStatus.has(getStatus(o).key));
+  if(searchTerm) orders = orders.filter(matchesSearch);
+  return orders;
+}
 
 // Auto-start com URL hardcoded
 API_URL = 'https://script.google.com/macros/s/AKfycbwfENYrCbmgdBzI5qgn2sy0llromxbaXd5u14kxT9HkRXtIMqBg7xGqqbbgw9C9uiKC/exec';
