@@ -94,6 +94,57 @@
     .badge-urgente{background:#fffbf0;color:#b06010}
     .badge-muito{background:#fff5f5;color:#c53030}
 
+    
+    /* RESUMO TOP */
+    .resumo-bar{background:#1a1816;color:#fff;padding:10px 20px;display:flex;gap:20px;flex-wrap:wrap;align-items:center}
+    .resumo-item{display:flex;align-items:center;gap:6px;font-size:13px}
+    .resumo-num{font-size:18px;font-weight:700}
+    .resumo-sep{color:#555;font-size:18px}
+    .r-hoje{color:#f59e0b}.r-atrasado{color:#ef4444}.r-prod{color:#60a5fa}.r-ok{color:#86efac}
+    /* SORT */
+    .sort-row{display:flex;align-items:center;gap:8px;padding:8px 0 0}
+    .sort-label{font-size:10px;font-weight:600;color:#8a8580;letter-spacing:.5px;text-transform:uppercase}
+    .btn-sort{padding:5px 12px;border-radius:20px;cursor:pointer;font-size:12px;font-family:inherit;border:1.5px solid #d8d5d0;background:#fff;color:#5a5550}
+    .btn-sort.ativo{background:#1a1816;border-color:#1a1816;color:#fff;font-weight:600}
+    /* CRONOGRAMA */
+    .crono-wrap{padding:16px 20px;overflow-y:auto;height:calc(100vh - 260px)}
+    .crono-timeline{display:flex;gap:10px;overflow-x:auto;padding-bottom:12px;align-items:flex-start}
+    .crono-day{flex:0 0 230px;background:#fff;border:1px solid #e0ddd8;border-radius:10px;overflow:hidden}
+    .crono-day.cd-hoje{border-color:#f59e0b}
+    .crono-day.cd-atrasado{border-color:#ef4444}
+    .crono-day-head{padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
+    .crono-day.cd-hoje .crono-day-head{background:#fffbf0}
+    .crono-day.cd-atrasado .crono-day-head{background:#fff0f0}
+    .crono-day.cd-futuro .crono-day-head{background:#f8f7f5}
+    .cd-nome{font-size:12px;font-weight:700}
+    .cd-data{font-size:10px;color:#6a6560;margin-top:1px}
+    .cd-count{background:#e0ddd8;color:#1a1816;border-radius:10px;font-size:10px;font-weight:700;padding:2px 7px}
+    .crono-day.cd-hoje .cd-count{background:#f59e0b;color:#fff}
+    .crono-day.cd-atrasado .cd-count{background:#ef4444;color:#fff}
+    .crono-cards{padding:8px}
+    .crono-card{background:#f8f7f5;border-radius:6px;padding:9px 11px;margin-bottom:6px;cursor:default}
+    .crono-card:last-child{margin-bottom:0}
+    .cc-sol{font-size:11px;font-weight:600;color:#1a1816}
+    .cc-mat{font-size:11px;color:#6a6560;margin:3px 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .cc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:5px}
+    .cc-urg{font-size:10px;font-weight:600}
+    .cc-edit{font-size:10px;background:#fff;border:1px solid #d8d5d0;border-radius:4px;padding:2px 7px;cursor:pointer;color:#5a5550;font-family:inherit}
+    .cc-edit:hover{background:#f4f3f0}
+    .crono-sem-data{flex:0 0 200px;background:#f8f7f5;border:1px dashed #d8d5d0;border-radius:10px;overflow:hidden}
+    /* MODAL EDIT DATE */
+    .modal-date-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:400;align-items:center;justify-content:center}
+    .modal-date-overlay.open{display:flex}
+    .modal-date{background:#fff;border-radius:10px;padding:24px;width:90%;max-width:340px;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+    .md-title{font-size:14px;font-weight:700;margin-bottom:4px}
+    .md-sub{font-size:11px;color:#6a6560;margin-bottom:16px}
+    .md-label{font-size:10px;font-weight:600;color:#5a5550;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px}
+    .md-input{width:100%;padding:9px 12px;border:1px solid #d8d5d0;border-radius:6px;font-size:14px;font-family:inherit;outline:none;margin-bottom:16px}
+    .md-input:focus{border-color:#c53030}
+    .md-actions{display:flex;gap:8px}
+    .md-save{flex:1;padding:10px;background:#c53030;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:700;font-family:inherit}
+    .md-cancel{flex:1;padding:10px;background:#f4f3f0;border:1px solid #e0ddd8;border-radius:6px;cursor:pointer;font-size:13px;font-family:inherit;color:#5a5550}
+    .crono-empty{padding:40px 0;text-align:center;color:#8a8580;font-size:13px}
+
     </style>
 </head>
 <body>
@@ -125,6 +176,12 @@
       <button class="btn-filtro" id="f-prod" onclick="setFiltro('producao')"><span class="dot" style="background:#3b82f6"></span>Em Produção <strong id="c-prod">0</strong></button>
       <button class="btn-filtro" id="f-env" onclick="setFiltro('enviado')"><span class="dot" style="background:#22c55e"></span>Enviado <strong id="c-env">0</strong></button>
       <button class="btn-filtro" id="f-all" onclick="setFiltro('todos')">Todos <strong id="c-all">0</strong></button>
+      <button class="btn-filtro" id="f-crono" onclick="setFiltro('cronograma')" style="background:#f1f5f9;border-color:#94a3b8;color:#334155">📅 Cronograma</button>
+    </div>
+    <div class="sort-row">
+      <span class="sort-label">Ordenar por</span>
+      <button class="btn-sort ativo" id="sort-data" onclick="setSort('data')">📅 Data do pedido</button>
+      <button class="btn-sort" id="sort-urg" onclick="setSort('prioridade')">⚡ Prioridade</button>
     </div>
   </div>
   <div class="busca-bar"><input type="text" id="busca" placeholder="Buscar por solicitante, cliente, empresa ou material..." oninput="renderCards()"/></div>
@@ -133,6 +190,20 @@
     <div id="loading" class="loading">Carregando pedidos...</div>
     <div id="grid" class="grid" style="display:none"></div>
     <div id="empty" class="empty" style="display:none"></div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR DATA -->
+<div class="modal-date-overlay" id="modal-date-overlay" onclick="fecharModalDate()">
+  <div class="modal-date" onclick="event.stopPropagation()">
+    <div class="md-title">Editar data de envio</div>
+    <div class="md-sub" id="md-sub"></div>
+    <div class="md-label">Nova data prevista</div>
+    <input type="date" class="md-input" id="md-input"/>
+    <div class="md-actions">
+      <button class="md-save" onclick="salvarDataPrev()">Salvar</button>
+      <button class="md-cancel" onclick="fecharModalDate()">Cancelar</button>
+    </div>
   </div>
 </div>
 
@@ -328,7 +399,273 @@ async function confirmar(){
   document.getElementById("modal-confirmar").disabled=false;
 }
 
-document.addEventListener("keydown",e=>{if(e.key==="Escape")fecharModal();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){fecharModal();fecharModalDate();}});
+
+const DIAS_SEMANA = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+let sortMode = 'data';
+let modalDatePedido = null;
+
+// ── URGÊNCIA ──
+function getUrgencia(p){
+  if(!p.urgencia||!p.urgencia.trim()) return 'Urgente';
+  if(p.urgencia.includes('Muito')) return 'Muito Urgente';
+  if(p.urgencia.includes('Normal')) return 'Normal';
+  return 'Urgente';
+}
+function urgPeso(p){ const u=getUrgencia(p); return u==='Muito Urgente'?0:u==='Urgente'?1:2; }
+
+// ── DATAS ──
+function calcPrevDate(p){
+  if(p.prev){ const d=parseDDMM(p.prev); if(d) return d; }
+  const dp=parseDDMM(p.data); if(!dp) return null;
+  const dias=getUrgencia(p)==='Muito Urgente'?1:getUrgencia(p)==='Normal'?7:3;
+  const r=new Date(dp); r.setDate(r.getDate()+dias); return r;
+}
+function parseDDMM(str){
+  if(!str) return null;
+  const m=str.match(/^(\d{1,2})\/(\d{1,2})/);
+  if(!m) return null;
+  const hoje=new Date();
+  const d=new Date(hoje.getFullYear(),parseInt(m[2])-1,parseInt(m[1]));
+  return d;
+}
+function fmtDate(d){
+  if(!d) return '';
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+}
+function fmtDateInput(d){
+  if(!d) return '';
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function isSameDay(a,b){ return a&&b&&a.getDate()===b.getDate()&&a.getMonth()===b.getMonth()&&a.getFullYear()===b.getFullYear(); }
+
+// ── SORT ──
+function setSort(mode){
+  sortMode=mode;
+  document.getElementById('sort-data').className='btn-sort'+(mode==='data'?' ativo':'');
+  document.getElementById('sort-urg').className='btn-sort'+(mode==='prioridade'?' ativo':'');
+  renderCards();
+}
+
+function sortedList(lista){
+  if(sortMode==='prioridade'){
+    return [...lista].sort((a,b)=>urgPeso(a)-urgPeso(b));
+  }
+  // Sort by data (newest first for default; oldest first for chronological)
+  return [...lista].sort((a,b)=>{
+    const da=parseDDMM(a.data), db=parseDDMM(b.data);
+    if(!da&&!db) return 0; if(!da) return 1; if(!db) return -1;
+    return da-db;
+  });
+}
+
+// ── RESUMO BAR ──
+function atualizarResumo(){
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const abertos=pedidos.filter(p=>!p.finalizado);
+  let atrasado=0,paraHoje=0,prod=0;
+  abertos.forEach(p=>{
+    const prev=calcPrevDate(p);
+    if(prev){ if(prev<hoje) atrasado++; else if(isSameDay(prev,hoje)) paraHoje++; }
+    if(p.emProducao&&!p.finalizado) prod++;
+  });
+  document.getElementById('r-atrasado').textContent=atrasado;
+  document.getElementById('r-hoje').textContent=paraHoje;
+  document.getElementById('r-prod').textContent=prod;
+  document.getElementById('r-total').textContent=abertos.length;
+  document.getElementById('resumo-bar').style.display=abertos.length?'flex':'none';
+}
+
+// ── SETFILTRO — extend to handle cronograma ──
+const _setFiltroOrig = setFiltro;
+function setFiltro(f){
+  filtro=f;
+  [["f-rec","f-rec"],["f-prod","f-prod"],["f-env","f-env"],["f-all","f-all"],["f-crono","f-crono"]].forEach(([id])=>{
+    const el=document.getElementById(id);
+    if(el) el.className=el.className.replace(" f-rec"," f-rec").replace(/\s*(f-rec|f-prod|f-env|f-all)$/, '');
+  });
+  const activeMap={"recebido":"f-rec f-rec","producao":"f-prod f-prod","enviado":"f-env f-env","todos":"f-all f-all","cronograma":""};
+  const map={"recebido":"f-rec","producao":"f-prod","enviado":"f-env","todos":"f-all","cronograma":"f-crono"};
+  const el=document.getElementById(map[f]);
+  if(el){ el.classList.add("active-tab"); }
+  // Show/hide crono vs grid
+  const isCreno=f==="cronograma";
+  const grid=document.getElementById("grid"),empty=document.getElementById("empty");
+  const crono=document.getElementById("crono-wrap");
+  if(grid) grid.style.display=isCreno?"none":"grid";
+  if(empty) empty.style.display="none";
+  if(crono) crono.style.display=isCreno?"block":"none";
+  if(isCreno) renderCronograma(); else renderCards();
+}
+
+// ── CRONOGRAMA ──
+function renderCronograma(){
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const abertos=pedidos.filter(p=>!p.finalizado);
+  // Sort by prevDate
+  const sorted=[...abertos].sort((a,b)=>{
+    const da=calcPrevDate(a),db=calcPrevDate(b);
+    if(!da&&!db)return 0;if(!da)return 1;if(!db)return -1;return da-db;
+  });
+
+  // Group by prevDate day
+  const groups={};
+  const semData=[];
+  sorted.forEach(p=>{
+    const prev=calcPrevDate(p);
+    if(!prev){semData.push(p);return;}
+    const key=prev.toDateString();
+    if(!groups[key]) groups[key]={date:prev,items:[]};
+    groups[key].items.push(p);
+  });
+
+  const keys=Object.keys(groups).sort((a,b)=>new Date(a)-new Date(b));
+  const urgLabel={'Normal':'🟢 Normal','Urgente':'🟡 Urgente','Muito Urgente':'🔴 Muito urgente'};
+
+  let html='<div class="crono-timeline">';
+  if(!keys.length&&!semData.length){
+    html+='<div class="crono-empty">Nenhum pedido em aberto.</div>';
+  }
+  keys.forEach(key=>{
+    const g=groups[key];
+    const d=g.date;
+    const isPast=d<hoje&&!isSameDay(d,hoje);
+    const isHoje=isSameDay(d,hoje);
+    const cls=isPast?'cd-atrasado':isHoje?'cd-hoje':'cd-futuro';
+    const diaSem=DIAS_SEMANA[d.getDay()===0?6:d.getDay()-1];
+    const dataStr=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
+    html+=`<div class="crono-day ${cls}">
+      <div class="crono-day-head">
+        <div><div class="cd-nome">${isHoje?'Hoje':isPast?'⚠ '+diaSem:diaSem}</div><div class="cd-data">${dataStr}</div></div>
+        <span class="cd-count">${g.items.length}</span>
+      </div>
+      <div class="crono-cards">`;
+    g.items.forEach(p=>{
+      const u=getUrgencia(p);
+      const urgColor=u==='Muito Urgente'?'#c53030':u==='Normal'?'#15803d':'#b06010';
+      html+=`<div class="crono-card">
+        <div class="cc-sol">${p.comercial}</div>
+        <div class="cc-mat">${p.material}</div>
+        <div class="cc-foot">
+          <span class="cc-urg" style="color:${urgColor}">${urgLabel[u]||u}</span>
+          <button class="cc-edit" onclick="abrirModalDate('${p.id}','${p.comercial}','${p.material.replace(/'/g,"\\'")}')">✏ Data</button>
+        </div>
+      </div>`;
+    });
+    html+='</div></div>';
+  });
+  if(semData.length){
+    html+=`<div class="crono-sem-data">
+      <div class="crono-day-head"><div><div class="cd-nome">Sem data</div><div class="cd-data">Indefinido</div></div><span class="cd-count">${semData.length}</span></div>
+      <div class="crono-cards">`;
+    semData.forEach(p=>{
+      const u=getUrgencia(p);
+      const urgColor=u==='Muito Urgente'?'#c53030':u==='Normal'?'#15803d':'#b06010';
+      html+=`<div class="crono-card">
+        <div class="cc-sol">${p.comercial}</div>
+        <div class="cc-mat">${p.material}</div>
+        <div class="cc-foot">
+          <span class="cc-urg" style="color:${urgColor}">${u}</span>
+          <button class="cc-edit" onclick="abrirModalDate('${p.id}','${p.comercial}','${p.material.replace(/'/g,"\\'")}')">✏ Data</button>
+        </div>
+      </div>`;
+    });
+    html+='</div></div>';
+  }
+  html+='</div>';
+  document.getElementById('crono-timeline').innerHTML=html;
+}
+
+// ── MODAL EDITAR DATA ──
+function abrirModalDate(id,comercial,material){
+  modalDatePedido=pedidos.find(p=>p.id===id);
+  if(!modalDatePedido)return;
+  document.getElementById('md-sub').textContent=comercial+' · '+material;
+  const prev=calcPrevDate(modalDatePedido);
+  document.getElementById('md-input').value=prev?fmtDateInput(prev):'';
+  document.getElementById('modal-date-overlay').classList.add('open');
+}
+function fecharModalDate(){
+  document.getElementById('modal-date-overlay').classList.remove('open');
+  modalDatePedido=null;
+}
+async function salvarDataPrev(){
+  if(!modalDatePedido)return;
+  const val=document.getElementById('md-input').value;
+  if(!val)return;
+  const d=new Date(val+'T00:00:00');
+  const ddmm=String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');
+  // Update local
+  modalDatePedido.prev=ddmm;
+  fecharModalDate();
+  atualizarResumo();
+  if(filtro==='cronograma') renderCronograma(); else renderCards();
+  // Save to planilha
+  await fetch("https://script.google.com/macros/s/AKfycbwfENYrCbmgdBzI5qgn2sy0llromxbaXd5u14kxT9HkRXtIMqBg7xGqqbbgw9C9uiKC/exec",{method:'POST',headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({action:'update_prev',id:modalDatePedido.id,prev:val}),mode:'no-cors'});
+}
+
+// ── PATCH renderCards to use sort ──
+const _renderCardsOrig = renderCards;
+function renderCards(){
+  const busca=document.getElementById("busca").value.toLowerCase();
+  const dataDe=document.getElementById("data-de")?document.getElementById("data-de").value:"";
+  const dataAte=document.getElementById("data-ate")?document.getElementById("data-ate").value:"";
+  let lista=pedidos.filter(p=>{
+    const s=getStatus(p);
+    if(filtro!=="todos"&&filtro!=="cronograma"&&s!==filtro) return false;
+    if(busca&&![p.comercial,p.cliente,p.empresa,p.material].join(" ").toLowerCase().includes(busca)) return false;
+    if(filtroUrg!=="todos"&&getUrgencia(p)!==filtroUrg) return false;
+    if(dataDe||dataAte){
+      const dp=parseDataPedido(p.data);
+      if(dp){
+        if(dataDe&&dp<new Date(dataDe)) return false;
+        if(dataAte){const ate=new Date(dataAte);ate.setDate(ate.getDate()+1);if(dp>ate) return false;}
+      }
+    }
+    return true;
+  });
+  lista=sortedList(lista);
+  const grid=document.getElementById("grid"),empty=document.getElementById("empty");
+  if(!lista.length){grid.style.display="none";empty.style.display="block";empty.textContent=busca?"Nenhum pedido encontrado.":"Nenhum pedido neste status.";return;}
+  grid.style.display="grid";empty.style.display="none";
+  const icon={Motoboy:"🛵",Correios:"📦",Representantes:"🤝"};
+  const dotColor={recebido:"#f59e0b",producao:"#3b82f6",enviado:"#22c55e"};
+  const tagCls={recebido:"tag-rec",producao:"tag-prod",enviado:"tag-env"};
+  const tagLabel={recebido:"Recebido",producao:"Em Produção",enviado:"Enviado"};
+  grid.innerHTML=lista.map(p=>{
+    const s=getStatus(p);
+    const cli=p.cliente||p.empresa?"<div class='card-cli'>"+(p.cliente?`<strong>${p.cliente}</strong>`:"")+
+      (p.empresa?`<span style='color:#6a6560'>${p.empresa}</span>`:"")+
+      (p.telefone?`<span style='color:#6a6560'>📞 ${p.telefone}</span>`:"")+
+      "</div>":"";
+    const rastreio=p.rastreio?`<div class='card-rastreio'>🚚 ${p.rastreio}</div>`:"";
+    const acoes=s==="recebido"?
+      `<div class='card-actions'><button class='btn-prod' onclick='abrirModal("${p.id}","producao")'>Iniciar produção →</button></div>`:
+      s==="producao"?
+      `<div class='card-actions'><button class='btn-back' onclick='abrirModal("${p.id}","recebido")'>← Voltar</button><button class='btn-env' onclick='abrirModal("${p.id}","enviado")'>Marcar enviado ✓</button></div>`:"";
+    const envInfo=s==="enviado"&&p.dataEnvio?`<div class='env-info'>✓ Enviado em ${p.dataEnvio}</div>`:"";
+    const urg=getUrgencia(p);
+    const urgBadge=urg==="Muito Urgente"?`<span class='badge-urg badge-muito'>🔴 Muito urgente</span>`:urg==="Normal"?`<span class='badge-urg badge-normal'>🟢 Normal</span>`:`<span class='badge-urg badge-urgente'>🟡 Urgente</span>`;
+    const prev=calcPrevDate(p);
+    const dataLabel=p.data?`<span style='font-size:10px;color:#8a8580;margin-left:6px'>📅 ${p.data}</span>`:"";
+    const prevLabel=prev?`<span style='font-size:10px;color:#6a6560;margin-left:6px'>📦 envio ${fmtDate(prev)}</span>`:"";
+    return `<div class='card' style='border-top-color:${dotColor[s]}'>
+      <div class='card-head'><div class='tags'><span class='tag ${tagCls[s]}'>${tagLabel[s]}</span>${urgBadge}${dataLabel}${prevLabel}<span class='tag tag-tipo'>${icon[p.tipo]||""} ${p.tipo}</span></div></div>
+      <div class='card-sol'>${p.comercial}</div>
+      <div class='card-mat'>${p.material}</div>
+      ${cli}${rastreio}${acoes}${envInfo}
+    </div>`;
+  }).join("");
+}
+
+// Patch atualizarContadores to also update resumo
+const _atualizarContsOrig = atualizarContadores;
+function atualizarContadores(){
+  _atualizarContsOrig();
+  atualizarResumo();
+}
+
 </script>
 </body>
 </html>

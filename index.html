@@ -131,7 +131,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
   <div class="view-bar">
     <button class="view-btn active" id="vb-status" onclick="setView('status')">Status</button>
-    <button class="view-btn" id="vb-crono" onclick="setView('crono')">Cronograma de envio</button>
   </div>
   <div class="main">
     <div class="err-bar" id="eb"></div>
@@ -149,13 +148,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         </div>
       </div>
     </div>
-    <div id="filt-crono" style="display:none;">
-      <div class="week-nav">
-        <button class="mnbtn" onclick="changeWeek(-1)">‹</button>
-        <strong id="wk-label"></strong>
-        <button class="mnbtn" onclick="changeWeek(1)">›</button>
-        <span class="week-note" id="wk-note"></span>
-      </div>
       <div class="filters">
         <div class="fgroup"><div class="fgroup-label">Canal</div><div class="fbuts" id="f-canal"></div></div>
       </div>
@@ -199,7 +191,6 @@ let selCom    = new Set(['Todos']);
 let selStatus = new Set(['all']);
 let selCanal  = new Set(['Todos']);
 let enviadoMonth = null;
-let weekOffset   = 0;
 let searchTerm   = '';
 
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
@@ -295,17 +286,7 @@ function isInMonth(o){
   return dt.getMonth()===enviadoMonth.m && dt.getFullYear()===enviadoMonth.y;
 }
 
-function setView(v){
-  currentView=v;
-  document.getElementById('vb-status').className='view-btn'+(v==='status'?' active':'');
-  document.getElementById('vb-crono').className='view-btn'+(v==='crono'?' active':'');
-  document.getElementById('filt-status').style.display=v==='status'?'':'none';
-  document.getElementById('filt-crono').style.display=v==='crono'?'':'none';
-  document.getElementById('stabs').style.display=v==='status'?'':'none';
-  document.getElementById('metrics').style.display=v==='status'?'':'none';
-  document.getElementById('legend').style.display=v==='status'?'':'none';
-  renderFilters(); renderContent();
-}
+function setView(v){ renderFilters(); renderContent(); }
 
 function render(){renderTabs();renderFilters();renderMetrics();renderLegend();renderContent();}
 
@@ -436,47 +417,6 @@ function renderStatusView(){
   document.getElementById('content').innerHTML=html;
 }
 
-function renderCronoView(){
-  let orders=getAllOrders().filter(o=>!o.final);
-  if(!selCanal.has('Todos')){orders=orders.filter(o=>selCanal.has(o._sheet));}
-  const ws=getWeekStart();
-  const weekDays=[0,1,2,3,4].map(i=>addDays(ws,i));
-  const byDay=weekDays.map(d=>({day:d,orders:[]}));
-  const noDate=[], other=[];
-  orders.forEach(o=>{
-    const dt=parseDate(o.prev);
-    if(!dt){noDate.push(o);return;}
-    const idx=byDay.findIndex(g=>sameDay(g.day,dt));
-    if(idx>=0) byDay[idx].orders.push(o);
-    else other.push(o);
-  });
-  let html='<div class="timeline">';
-  byDay.forEach((g,i)=>{
-    const isToday=sameDay(g.day,TODAY);
-    const isPast=g.day<TODAY&&!isToday;
-    const cls=isPast?'late':isToday?'today':'future';
-    html+=`<div class="tday ${cls}">
-      <div class="tday-head"><div><div>${DIAS[i]}</div><div class="tday-sub">${fmtDay(g.day)}</div></div><span class="tday-count">${g.orders.length}</span></div>
-      <div class="tday-body">`;
-    if(!g.orders.length) html+=`<div class="no-orders">—</div>`;
-    g.orders.forEach(o=>{ html+=makeCard(o,SHEETS_CFG[o._sheet]?.color||'#888','tl'); });
-    html+=`</div></div>`;
-  });
-  if(other.length){
-    other.sort((a,b)=>(parseDate(a.prev)||new Date(9999,0))-(parseDate(b.prev)||new Date(9999,0)));
-    html+=`<div class="tday future" style="flex:0 0 200px"><div class="tday-head"><div>Outra data</div><span class="tday-count">${other.length}</span></div><div class="tday-body">`;
-    other.forEach(o=>{ html+=makeCard(o,SHEETS_CFG[o._sheet]?.color||'#888','tl'); });
-    html+=`</div></div>`;
-  }
-  if(noDate.length){
-    html+=`<div class="tday future" style="flex:0 0 200px"><div class="tday-head"><div>Sem previsão</div><span class="tday-count">${noDate.length}</span></div><div class="tday-body">`;
-    noDate.forEach(o=>{ html+=makeCard(o,SHEETS_CFG[o._sheet]?.color||'#888','tl'); });
-    html+=`</div></div>`;
-  }
-  html+='</div>';
-  if(!orders.length) html='<div class="empty">Nenhum pedido aberto para este período.</div>';
-  document.getElementById('content').innerHTML=html;
-}
 
 function makeCard(o, color, mode){
   const st=getStatus(o);
@@ -606,7 +546,6 @@ function changeMonth(d){
   enviadoMonth={y,m};
   renderFilters(); renderContent();
 }
-function changeWeek(d){weekOffset+=d;renderFilters();renderContent();}
 
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function escAttr(s){return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
@@ -629,7 +568,7 @@ function matchesSearch(o){
   return fields.includes(searchTerm);
 }
 function getFilteredOrders(){
-  let orders = currentView === 'crono' ? getAllOrders().filter(o=>!o.final) : getOrders();
+  let orders = getOrders();
   if(!selCom.has('Todos')) orders = orders.filter(o=>selCom.has(o.com));
   const showAll = selStatus.has('all');
   if(!showAll) orders = orders.filter(o=>selStatus.has(getStatus(o).key));
