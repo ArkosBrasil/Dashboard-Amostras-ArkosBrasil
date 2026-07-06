@@ -83,8 +83,9 @@
       <div class="row-btns">
         <button class="tbtn on-green" id="bt-nor" onclick="setUrg('Normal')">Normal</button>
         <button class="tbtn" id="bt-urg" onclick="setUrg('Urgente')">⚡ Urgente</button>
-        <button class="tbtn" id="bt-muy" onclick="setUrg('Muito Urgente')">🔴 Muito</button>
+        <button class="tbtn" id="bt-muy" onclick="setUrg('Muito Urgente')">🔴 Muito urgente</button>
       </div>
+      <div id="urg-hint" style="font-size:11px;color:#6a6560;margin-top:6px">Envio em até 1 semana</div>
     </div>
   </div>
 
@@ -123,8 +124,11 @@
   </div>
 
   <div class="field">
-    <label>Endereço completo *</label>
-    <input type="text" id="end" placeholder="Rua, número, bairro, cidade - UF" oninput="validate()"/>
+    <label>Endereço *</label>
+    <div style="display:grid;grid-template-columns:1fr 110px;gap:8px">
+      <input type="text" id="end" placeholder="Rua, bairro, cidade - UF" oninput="validate()"/>
+      <input type="text" id="num" placeholder="Número"/>
+    </div>
   </div>
 
   <div class="grid2">
@@ -185,6 +189,10 @@ function setUrg(u){
   urg=u;
   const m={Normal:"nor",Urgente:"urg","Muito Urgente":"muy"};
   const cls={Normal:"on-green",Urgente:"on-amber","Muito Urgente":"on"};
+  const hints={Normal:"Envio em até 1 semana",Urgente:"Envio em até 3 dias","Muito Urgente":"Envio em 1 dia"};
+  const hintColors={Normal:"#6a6560",Urgente:"#b06010","Muito Urgente":"#c53030"};
+  const hEl=document.getElementById("urg-hint");
+  if(hEl){hEl.textContent=hints[v]||"";hEl.style.color=hintColors[v]||"#6a6560";}
   ["nor","urg","muy"].forEach(id=>document.getElementById("bt-"+id).className="tbtn");
   document.getElementById("bt-"+m[u]).classList.add(cls[u]);
 }
@@ -234,12 +242,12 @@ async function enviar(){
     empresa:document.getElementById("empresa").value.trim(),
     cpfCnpj:document.getElementById("cpf").value.trim(),
     cep:document.getElementById("cep").value.trim(),
-    endereco:document.getElementById("end").value.trim(),
+    endereco:(document.getElementById("end").value.trim()+(document.getElementById("num").value.trim()?" Nº "+document.getElementById("num").value.trim():"")),
     email:document.getElementById("email").value.trim(),
     telefone:document.getElementById("tel").value.trim(),
     observacao:document.getElementById("obs").value.trim()};
   try{
-    await fetch(URL_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),mode:"no-cors"});
+    await fetch(URL_API,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload),mode:"no-cors"});
     document.getElementById("form-wrap").style.display="none";
     document.getElementById("sucesso-wrap").style.display="block";
   }catch(e){alert("Erro ao enviar. Tente novamente.");document.getElementById("btn-env").disabled=false;document.getElementById("btn-env").textContent="Enviar solicitação →";}

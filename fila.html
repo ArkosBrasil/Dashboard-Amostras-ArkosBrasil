@@ -246,7 +246,7 @@ async function confirmar(){
     emProducao:modalStatus==="producao"||modalStatus==="enviado",
     finalizado:modalStatus==="enviado",rastreio};
   try{
-    await fetch(SCRIPT_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),mode:"no-cors"});
+    await fetch(SCRIPT_URL,{method:"POST",headers:{"Content-Type":"text/plain"},body:JSON.stringify(payload),mode:"no-cors"});
     const idx=pedidos.findIndex(p=>p.id===modalPedido.id);
     if(idx>=0){pedidos[idx].emProducao=payload.emProducao;pedidos[idx].finalizado=payload.finalizado;if(rastreio)pedidos[idx].rastreio=rastreio;if(payload.finalizado)pedidos[idx].dataEnvio=new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"});}
     atualizarContadores();renderCards();fecharModal();
