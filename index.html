@@ -322,7 +322,8 @@ function renderTabs(){
 
 function renderFilters(){
   const orders=getOrders();
-  const coms=['Todos',...new Set(orders.map(o=>o.com).filter(Boolean).sort())];
+  const HIDDEN_COMS=['GABRIELA','Gabriela','gabriela'];
+  const coms=['Todos',...new Set(orders.map(o=>o.com).filter(c=>c&&!HIDDEN_COMS.includes(c)).sort())];
   document.getElementById('f-com').innerHTML=coms.map(c=>{
     const active=selCom.has(c);
     return`<button class="fbtn${active?' active':''}" onclick="toggleCom(this)" data-val="${escAttr(c)}">${escHtml(c)}</button>`;
@@ -402,9 +403,10 @@ function renderContent(){
 function renderStatusView(){
   let orders=getOrders();
   if(!selCom.has('Todos')){orders=orders.filter(o=>selCom.has(o.com));}
-  if(searchTerm){orders=orders.filter(matchesSearch);}
-  const showAll=selStatus.has('all');
+  // When searching, ignore status filter and show all matching orders
+  const showAll=selStatus.has('all')||searchTerm!=='';
   if(!showAll){orders=orders.filter(o=>selStatus.has(getStatus(o).key));}
+  if(searchTerm){orders=orders.filter(matchesSearch);}
   const onlyEnv=!showAll&&selStatus.size===1&&selStatus.has('env');
   if(onlyEnv){
     orders=orders.filter(isInMonth);

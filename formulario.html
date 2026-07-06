@@ -192,7 +192,7 @@ function setUrg(u){
   const hints={Normal:"Envio em até 1 semana",Urgente:"Envio em até 3 dias","Muito Urgente":"Envio em 1 dia"};
   const hintColors={Normal:"#6a6560",Urgente:"#b06010","Muito Urgente":"#c53030"};
   const hEl=document.getElementById("urg-hint");
-  if(hEl){hEl.textContent=hints[v]||"";hEl.style.color=hintColors[v]||"#6a6560";}
+  if(hEl){hEl.textContent=hints[u]||"";hEl.style.color=hintColors[u]||"#6a6560";}
   ["nor","urg","muy"].forEach(id=>document.getElementById("bt-"+id).className="tbtn");
   document.getElementById("bt-"+m[u]).classList.add(cls[u]);
 }
