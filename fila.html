@@ -286,9 +286,18 @@ async function carregar(){
   try{
     const r=await fetch(SCRIPT_URL+"?action=fila");
     const d=await r.json();
-    if(d.success){pedidos=d.pedidos.reverse();atualizarContadores();renderCards();}
-    else{mostrarErro("Erro: "+d.error);}
-  }catch(e){mostrarErro("Não foi possível conectar ao servidor.");}
+    if(d.success){
+      pedidos=d.pedidos||[];
+      pedidos.reverse();
+      try{ atualizarContadores(); }catch(e2){ console.error('atualizarContadores erro:',e2); }
+      try{ renderCards(); }catch(e3){ console.error('renderCards erro:',e3); }
+    } else {
+      mostrarErro("Erro do servidor: "+(d.error||"desconhecido"));
+    }
+  }catch(e){
+    console.error('Erro carregar fila:',e);
+    mostrarErro("Não foi possível conectar: "+e.message);
+  }
   document.getElementById("loading").style.display="none";
 }
 
@@ -311,58 +320,7 @@ function setFiltro(f){
   renderCards();
 }
 
-function renderCards(){
-  const busca=document.getElementById("busca").value.toLowerCase();
-  const dataDe  = document.getElementById("data-de")  ? document.getElementById("data-de").value  : "";
-  const dataAte = document.getElementById("data-ate") ? document.getElementById("data-ate").value : "";
-  const lista=pedidos.filter(p=>{
-    const s=getStatus(p);
-    // Status filter
-    if(filtro!=="todos"&&s!==filtro) return false;
-    // Search filter
-    if(busca&&![p.comercial,p.cliente,p.empresa,p.material].join(" ").toLowerCase().includes(busca)) return false;
-    // Urgencia filter
-    if(filtroUrg!=="todos"&&getUrgencia(p)!==filtroUrg) return false;
-    // Date filter
-    if(dataDe||dataAte){
-      const dp=parseDataPedido(p.data);
-      if(dp){
-        if(dataDe&&dp<new Date(dataDe)) return false;
-        if(dataAte){const ate=new Date(dataAte);ate.setDate(ate.getDate()+1);if(dp>ate) return false;}
-      }
-    }
-    return true;
-  });
-  const grid=document.getElementById("grid"),empty=document.getElementById("empty");
-  if(!lista.length){grid.style.display="none";empty.style.display="block";empty.textContent=busca?"Nenhum pedido encontrado.":"Nenhum pedido neste status.";return;}
-  grid.style.display="grid";empty.style.display="none";
-  const icon={Motoboy:"🛵",Correios:"📦",Representantes:"🤝"};
-  const dotColor={recebido:"#f59e0b",producao:"#3b82f6",enviado:"#22c55e"};
-  const tagCls={recebido:"tag-rec",producao:"tag-prod",enviado:"tag-env"};
-  const tagLabel={recebido:"Recebido",producao:"Em Produção",enviado:"Enviado"};
-  grid.innerHTML=lista.map(p=>{
-    const s=getStatus(p);
-    const cli=p.cliente||p.empresa?"<div class='card-cli'>"+(p.cliente?`<strong>${p.cliente}</strong>`:"")+
-      (p.empresa?`<span style='color:#6a6560'>${p.empresa}</span>`:"")+
-      (p.telefone?`<span style='color:#6a6560'>📞 ${p.telefone}</span>`:"")+
-      "</div>":"";
-    const rastreio=p.rastreio?`<div class='card-rastreio'>🚚 ${p.rastreio}</div>`:"";
-    const acoes=s==="recebido"?
-      `<div class='card-actions'><button class='btn-prod' onclick='abrirModal("${p.id}","producao")'>Iniciar produção →</button></div>`:
-      s==="producao"?
-      `<div class='card-actions'><button class='btn-back' onclick='abrirModal("${p.id}","recebido")'>← Voltar</button><button class='btn-env' onclick='abrirModal("${p.id}","enviado")'>Marcar como enviado ✓</button></div>`:"";
-    const envInfo=s==="enviado"&&p.dataEnvio?`<div class='env-info'>✓ Enviado em ${p.dataEnvio}</div>`:"";
-    const urg=getUrgencia(p);
-    const urgBadge=urg==="Muito Urgente"?`<span class='badge-urg badge-muito'>🔴 Muito urgente</span>`:urg==="Normal"?`<span class='badge-urg badge-normal'>🟢 Normal</span>`:`<span class='badge-urg badge-urgente'>🟡 Urgente</span>`;
-    const dataLabel=p.data?`<span style='font-size:10px;color:#8a8580;margin-left:6px'>📅 ${p.data}</span>`:"";
-    return `<div class='card' style='border-top-color:${dotColor[s]}'>
-      <div class='card-head'><div class='tags'><span class='tag ${tagCls[s]}'>${tagLabel[s]}</span>${urgBadge}${dataLabel}<span class='tag tag-tipo'>${icon[p.tipo]||""} ${p.tipo}</span></div><span class='card-data'>${p.data||""}</span></div>
-      <div class='card-sol'>${p.comercial}</div>
-      <div class='card-mat'>${p.material}</div>
-      ${cli}${rastreio}${acoes}${envInfo}
-    </div>`;
-  }).join("");
-}
+
 
 // ── MODAL ──
 function abrirModal(id,novoStatus){
