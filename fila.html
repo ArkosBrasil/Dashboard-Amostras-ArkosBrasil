@@ -190,6 +190,7 @@
     <div id="loading" class="loading">Carregando pedidos...</div>
     <div id="grid" class="grid" style="display:none"></div>
     <div id="empty" class="empty" style="display:none"></div>
+    <div id="crono-wrap" style="display:none;padding:16px 20px;overflow-y:auto"><div class="crono-timeline" id="crono-timeline"></div></div>
   </div>
 </div>
 
@@ -310,14 +311,27 @@ function atualizarContadores(){
   document.getElementById("c-prod").textContent=c.producao;
   document.getElementById("c-env").textContent=c.enviado;
   document.getElementById("c-all").textContent=pedidos.length;
+  try{atualizarResumo();}catch(e){}
 }
 
 function setFiltro(f){
   filtro=f;
-  [["f-rec","f-rec"],["f-prod","f-prod"],["f-env","f-env"],["f-all","f-all"]].forEach(([id])=>document.getElementById(id).className="btn-filtro");
-  const cls={recebido:"f-rec",producao:"f-prod",enviado:"f-env",todos:"f-all"};
-  document.getElementById("f-"+{recebido:"rec",producao:"prod",enviado:"env",todos:"all"}[f]).classList.add(cls[f]);
-  renderCards();
+  ["f-rec","f-prod","f-env","f-all","f-crono"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.className="btn-filtro"+(id==="f-crono"?" f-crono":"");
+  });
+  const cls={recebido:"f-rec f-rec",producao:"f-prod f-prod",enviado:"f-env f-env",todos:"f-all f-all",cronograma:"f-crono"};
+  const map={recebido:"f-rec",producao:"f-prod",enviado:"f-env",todos:"f-all",cronograma:"f-crono"};
+  const el=document.getElementById(map[f]);
+  if(el) el.className+=" ativo";
+  const isCreno=f==="cronograma";
+  const grid=document.getElementById("grid");
+  const empty=document.getElementById("empty");
+  const crono=document.getElementById("crono-wrap");
+  if(grid) grid.style.display=isCreno?"none":"grid";
+  if(empty) empty.style.display="none";
+  if(crono) crono.style.display=isCreno?"block":"none";
+  if(isCreno) renderCronograma(); else renderCards();
 }
 
 
@@ -618,11 +632,6 @@ function renderCards(){
 }
 
 // Patch atualizarContadores to also update resumo
-const _atualizarContsOrig = atualizarContadores;
-function atualizarContadores(){
-  _atualizarContsOrig();
-  atualizarResumo();
-}
 
 </script>
 </body>
